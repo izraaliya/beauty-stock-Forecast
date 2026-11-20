@@ -49,8 +49,8 @@ Without refunds the app ignores them, without a planogram it estimates display t
 ### Python
 
 ```bash
-git clone https://github.com/izraaliya/beauty-stock-ai.git
-cd beauty-stock-ai
+git clone https://github.com/izraaliya/beauty-stock-forecast.git
+cd beauty-stock-forecast
 python -m venv .venv
 source .venv/bin/activate          # Git Bash on Windows: source .venv/Scripts/activate
 pip install -r requirements-dev.txt
