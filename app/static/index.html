@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Beauty Stock AI</title>
+<link rel="icon" href="data:,">
+<style>
+  :root { --bg:#f6f7fb; --card:#fff; --ink:#1b2437; --muted:#667085; --line:#e4e7ee; --accent:#6d4aff; --accent2:#ede9ff;
+          --red:#fde2e0; --redt:#b42318; --amber:#fff1cc; --ambert:#93600a; --blue:#dcebff; --bluet:#1b5fb4; --green:#dcf5e3; --greent:#1d7a3a; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; background:var(--bg); color:var(--ink); line-height:1.5; }
+  header { background:linear-gradient(135deg,#3b2a99,#6d4aff); color:#fff; padding:28px 20px; }
+  header .in, main { max-width:1180px; margin:0 auto; }
+  header h1 { margin:0 0 4px; font-size:26px; } header p { margin:0; opacity:.9; }
+  main { padding:20px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:18px; margin-bottom:16px; }
+  h2 { margin:0 0 10px; font-size:17px; } h3 { margin:14px 0 8px; font-size:15px; }
+  .drop { border:2px dashed #c4b8ff; border-radius:12px; padding:26px; text-align:center; color:var(--muted); background:#faf9ff; cursor:pointer; }
+  .drop.over { background:var(--accent2); border-color:var(--accent); }
+  .drop b { color:var(--ink); }
+  .chips { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+  .chip { background:var(--accent2); color:#3b2a99; border-radius:999px; padding:4px 10px; font-size:13px; }
+  .row { display:flex; flex-wrap:wrap; gap:14px; align-items:center; margin-top:14px; }
+  label { font-size:14px; color:var(--muted); } input[type=number], select, input[type=search] { border:1px solid var(--line); border-radius:8px; padding:7px 9px; font:inherit; background:#fff; }
+  input[type=number] { width:70px; }
+  button { background:var(--accent); color:#fff; border:0; border-radius:8px; padding:10px 18px; font:inherit; font-weight:600; cursor:pointer; }
+  button.ghost { background:#fff; color:var(--accent); border:1px solid var(--accent); }
+  button:disabled { opacity:.55; cursor:wait; }
+  a.btn { display:inline-block; text-decoration:none; background:#fff; color:var(--accent); border:1px solid var(--accent); border-radius:8px; padding:9px 16px; font-weight:600; }
+  details summary { cursor:pointer; color:var(--accent); font-weight:600; margin-top:12px; }
+  .err { background:var(--red); color:var(--redt); border-radius:8px; padding:10px 12px; margin-top:12px; white-space:pre-wrap; }
+  .warn { background:var(--amber); color:var(--ambert); border-radius:8px; padding:8px 12px; margin-top:8px; font-size:14px; }
+  .kpis { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; margin-bottom:16px; }
+  .kpi { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px; }
+  .kpi .v { font-size:24px; font-weight:700; white-space:nowrap; } .kpi .l { color:var(--muted); font-size:13px; }
+  .kpi.r .v { color:var(--redt); } .kpi.a .v { color:var(--ambert); } .kpi.b .v { color:var(--bluet); } .kpi.g .v { color:var(--greent); }
+  .ai h2 { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+  .badge { font-size:12px; font-weight:600; border-radius:999px; padding:2px 9px; background:var(--accent2); color:#3b2a99; }
+  .headline { font-size:18px; font-weight:700; margin:6px 0; }
+  .prio { display:flex; gap:10px; margin:8px 0; } .prio .n { flex:0 0 26px; height:26px; border-radius:50%; background:var(--accent); color:#fff; display:grid; place-items:center; font-size:13px; font-weight:700; }
+  .prio .t { font-weight:600; } .prio .d { color:var(--muted); font-size:14px; }
+  ul.w { margin:6px 0 0; padding-left:20px; color:var(--muted); font-size:14px; }
+  .note { color:var(--muted); font-size:13px; margin-top:8px; }
+  .tabs { display:flex; flex-wrap:wrap; gap:4px; border-bottom:1px solid var(--line); margin-bottom:12px; }
+  .tabs button { background:none; color:var(--muted); border-radius:8px 8px 0 0; padding:9px 14px; border-bottom:3px solid transparent; }
+  .tabs button.on { color:var(--accent); border-bottom-color:var(--accent); }
+  .tw { overflow:auto; max-height:560px; border:1px solid var(--line); border-radius:8px; }
+  table { border-collapse:collapse; width:100%; font-size:13px; }
+  th { position:sticky; top:0; background:#f1f2f8; text-align:left; padding:8px 10px; white-space:nowrap; cursor:pointer; user-select:none; border-bottom:1px solid var(--line); }
+  td { padding:7px 10px; border-bottom:1px solid #f0f1f5; white-space:nowrap; } td.num { text-align:right; font-variant-numeric:tabular-nums; }
+  .pill { border-radius:999px; padding:2px 9px; font-size:12px; font-weight:600; }
+  .RISIKO { background:var(--red); color:var(--redt); } .ORDER { background:var(--amber); color:var(--ambert); }
+  .OVERSTOCK { background:var(--blue); color:var(--bluet); } .AMAN { background:var(--green); color:var(--greent); }
+  .hint { color:var(--muted); font-size:13px; margin:0 0 8px; }
+  .hidden { display:none; }
+  code { background:#f1f2f8; padding:1px 5px; border-radius:4px; font-size:12.5px; }
+  .fmt td { white-space:normal; }
+  footer { color:var(--muted); font-size:13px; text-align:center; padding:20px; }
+</style>
+</head>
+<body>
+<header><div class="in">
+  <h1>📦 Beauty Stock AI</h1>
+  <p>Upload data penjualan, refund, dan stok toko beauty. Dapatkan rencana stok per toko per SKU, tren hari, dan rencana rak vs gudang.</p>
+</div></header>
+
+<main>
+  <section class="card">
+    <h2>1. Upload data (CSV)</h2>
+    <div id="drop" class="drop" tabindex="0">
+      <b>Tarik file CSV ke sini</b> atau klik untuk memilih.<br>
+      <span>Bisa banyak file sekaligus. Jenis file dikenali otomatis dari kolomnya.</span>
+      <input id="file" type="file" accept=".csv,text/csv" multiple class="hidden">
+    </div>
+    <div id="chips" class="chips"></div>
+
+    <div class="row">
+      <label>Siklus order (hari) <input id="review" type="number" value="7" min="1" max="60"></label>
+      <label>Batas overstock (hari stok) <input id="over" type="number" value="45" min="7" max="365"></label>
+      <label><input id="ai" type="checkbox" checked> Ringkasan AI (Gemini)</label>
+    </div>
+    <div class="row">
+      <button id="go">Analisis</button>
+      <button id="sample" class="ghost" type="button">Coba dengan data contoh</button>
+    </div>
+    <div id="error" class="err hidden"></div>
+
+    <details>
+      <summary>Format file yang dibutuhkan</summary>
+      <p class="hint">Wajib: penjualan, stok, dan master SKU. Lainnya opsional, tapi makin lengkap makin akurat. Nama file bebas.</p>
+      <div class="tw"><table class="fmt"><thead><tr><th>File</th><th>Wajib?</th><th>Kolom</th><th>Contoh</th></tr></thead><tbody id="fmt"></tbody></table></div>
+    </details>
+  </section>
+
+  <div id="loading" class="card hidden">Menganalisis… ini bisa makan beberapa detik (lebih lama jika AI aktif).</div>
+
+  <div id="results" class="hidden">
+    <section class="card ai" id="aiCard"></section>
+    <div id="warns"></div>
+    <div class="kpis" id="kpis"></div>
+
+    <section class="card">
+      <div class="row" style="margin:0 0 10px;justify-content:space-between">
+        <div class="tabs" id="tabs" style="border:0;margin:0"></div>
+        <a id="dl" class="btn" href="#">⬇ Unduh Excel</a>
+      </div>
+      <div id="pane"></div>
+    </section>
+  </div>
+</main>
+<footer>Hasil adalah rekomendasi berdasarkan data yang diunggah. Periksa kembali sebelum membuat order.</footer>
+
+<script>
+const $ = id => document.getElementById(id);
+const fmt = n => (n === null || n === undefined || n === "") ? "" : Number(n).toLocaleString("id-ID", {maximumFractionDigits: 1});
+const rp = n => "Rp " + Number(n).toLocaleString("id-ID");
+const rpShort = n => n >= 1e9 ? "Rp " + (n / 1e9).toLocaleString("id-ID", {maximumFractionDigits: 2}) + " M" : n >= 1e6 ? "Rp " + (n / 1e6).toLocaleString("id-ID", {maximumFractionDigits: 1}) + " jt" : rp(n);
+let files = [], DATA = null, tab = "ringkasan";
+
+function el(tag, props = {}, ...kids) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(props)) { if (k === "class") e.className = v; else if (k === "text") e.textContent = v; else e.setAttribute(k, v); }
+  for (const k of kids) if (k !== null && k !== undefined) e.append(k.nodeType ? k : document.createTextNode(k));
+  return e;
+}
+
+// ---------------------------------------------------------------- upload
+const drop = $("drop"), input = $("file");
+drop.onclick = () => input.click();
+drop.onkeydown = e => { if (e.key === "Enter") input.click(); };
+["dragenter", "dragover"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add("over"); }));
+["dragleave", "drop"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove("over"); }));
+drop.addEventListener("drop", e => addFiles(e.dataTransfer.files));
+input.onchange = () => { addFiles(input.files); input.value = ""; };
+function addFiles(list) {
+  for (const f of list) if (!files.some(x => x.name === f.name && x.size === f.size)) files.push(f);
+  renderChips();
+}
+function renderChips() {
+  $("chips").replaceChildren(...files.map((f, i) => {
+    const c = el("span", {class: "chip"}, f.name + " ");
+    const x = el("a", {href: "#", text: "✕"}); x.onclick = ev => { ev.preventDefault(); files.splice(i, 1); renderChips(); };
+    c.append(x); return c;
+  }));
+}
+function showError(msg) { const e = $("error"); e.textContent = msg || ""; e.classList.toggle("hidden", !msg); }
+
+async function run(url, body) {
+  showError(""); $("results").classList.add("hidden"); $("loading").classList.remove("hidden");
+  $("go").disabled = $("sample").disabled = true;
+  try {
+    const res = await fetch(url, {method: "POST", body});
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(typeof data.detail === "string" ? data.detail : "Permintaan tidak valid. Periksa file dan pengaturan.");
+    DATA = data; tab = "ringkasan"; render();
+  } catch (e) { showError(e.message); }
+  finally { $("loading").classList.add("hidden"); $("go").disabled = $("sample").disabled = false; }
+}
+function opts(fd) { fd.append("review_days", $("review").value); fd.append("overstock_days", $("over").value); fd.append("use_ai", $("ai").checked); return fd; }
+$("go").onclick = () => {
+  if (!files.length) return showError("Pilih minimal file penjualan, stok, dan master SKU.");
+  const fd = new FormData(); files.forEach(f => fd.append("files", f)); run("/api/analyze", opts(fd));
+};
+$("sample").onclick = () => run("/api/analyze/sample", opts(new FormData()));
+
+// ---------------------------------------------------------------- tables
+function table(cols, rows, {sortable = true, cell} = {}) {
+  let sortKey = null, asc = true;
+  const wrap = el("div", {class: "tw"});
+  const draw = () => {
+    const data = sortKey ? [...rows].sort((a, b) => {
+      const x = a[sortKey], y = b[sortKey];
+      return (typeof x === "number" && typeof y === "number" ? x - y : String(x ?? "").localeCompare(String(y ?? ""), "id")) * (asc ? 1 : -1);
+    }) : rows;
+    const thead = el("thead", {}, el("tr", {}, ...cols.map(c => {
+      const th = el("th", {text: c.label + (sortKey === c.key ? (asc ? " ▲" : " ▼") : "")});
+      if (sortable) th.onclick = () => { asc = sortKey === c.key ? !asc : true; sortKey = c.key; draw(); };
+      return th;
+    })));
+    const tbody = el("tbody", {}, ...data.slice(0, 1500).map(r => el("tr", {}, ...cols.map(c => {
+      const v = r[c.key]; const td = el("td", {class: typeof v === "number" ? "num" : ""});
+      if (cell && cell(td, c, v, r)) return td;
+      td.textContent = typeof v === "number" ? (c.dec !== undefined ? v.toLocaleString("id-ID", {minimumFractionDigits: c.dec, maximumFractionDigits: c.dec}) : fmt(v)) : (v ?? ""); return td;
+    }))));
+    wrap.replaceChildren(el("table", {}, thead, tbody));
+  };
+  draw(); return wrap;
+}
+const pillClass = s => ({"RISIKO HABIS": "RISIKO", "ORDER SEKARANG": "ORDER", "OVERSTOCK": "OVERSTOCK", "AMAN": "AMAN"})[s];
+const statusCell = (td, c, v) => { if (c.key !== "status") return false; td.append(el("span", {class: "pill " + pillClass(v), text: v})); return true; };
+
+// ---------------------------------------------------------------- render
+function render() {
+  const d = DATA, k = d.kpi, st = k.status;
+  // AI card
+  const ins = d.insight, ai = $("aiCard"); ai.replaceChildren();
+  ai.append(el("h2", {}, "Ringkasan ", el("span", {class: "badge", text: ins.source === "gemini" ? "✨ dibuat AI (Gemini)" : "berbasis aturan"})));
+  ai.append(el("div", {class: "headline", text: ins.headline}), el("div", {text: ins.summary}));
+  ins.priorities.forEach((p, i) => ai.append(el("div", {class: "prio"}, el("div", {class: "n", text: i + 1}), el("div", {}, el("div", {class: "t", text: p.title}), el("div", {class: "d", text: p.detail})))));
+  if (ins.watchouts.length) { ai.append(el("h3", {text: "Perlu diwaspadai"}), el("ul", {class: "w"}, ...ins.watchouts.map(w => el("li", {text: w})))); }
+  if (ins.note) ai.append(el("div", {class: "note", text: ins.note}));
+  if (ins.source === "gemini") ai.append(el("div", {class: "note", text: "Teks dibuat AI dari angka hasil analisis. Cek kembali sebelum dipakai untuk keputusan besar."}));
+
+  $("warns").replaceChildren(...(d.meta.warnings || []).map(w => el("div", {class: "warn", text: "⚠ " + w})));
+  const kp = (cls, v, l) => el("div", {class: "kpi " + cls}, el("div", {class: "v", text: v}), el("div", {class: "l", text: l}));
+  $("kpis").replaceChildren(
+    kp("r", fmt(st["RISIKO HABIS"] || 0), "SKU berisiko habis"), kp("a", fmt(st["ORDER SEKARANG"] || 0), "Order sekarang"),
+    kp("b", fmt(st["OVERSTOCK"] || 0), "Overstock"), kp("g", fmt(st["AMAN"] || 0), "Aman"),
+    kp("", fmt(k.order_units), "Total order (unit)"), kp("", rpShort(k.order_value), "Nilai order (HPP)"),
+    kp("", fmt(k.display_gap_skus), "SKU display Minggu kurang"));
+  $("dl").href = "/api/report/" + d.job_id + ".xlsx";
+
+  const tabs = [["ringkasan", "Per toko"], ["rekom", "Rekomendasi per SKU"], ["minggu", "Rak vs gudang (Minggu)"], ["tren", "Tren hari"], ["refund", "Refund"], ["asumsi", "Asumsi"]];
+  $("tabs").replaceChildren(...tabs.map(([id, label]) => { const b = el("button", {class: id === tab ? "on" : "", text: label, type: "button"}); b.onclick = () => { tab = id; render(); }; return b; }));
+  $("results").classList.remove("hidden");
+  const pane = $("pane"); pane.replaceChildren(); ({ringkasan: paneStores, rekom: paneRec, minggu: paneSunday, tren: paneTrend, refund: paneRefund, asumsi: paneAssump})[tab](pane);
+}
+
+function paneStores(p) {
+  p.append(el("p", {class: "hint", text: "Klik judul kolom untuk mengurutkan."}));
+  p.append(table([
+    {key: "store_name", label: "Toko"}, {key: "risiko_habis", label: "Risiko habis"}, {key: "order_sekarang", label: "Order sekarang"},
+    {key: "overstock", label: "Overstock"}, {key: "aman", label: "Aman"}, {key: "total_order_unit", label: "Order (unit)"},
+    {key: "total_order_nilai", label: "Nilai order (Rp)"}, {key: "display_minggu_kurang", label: "SKU display Minggu kurang"},
+    {key: "stok_rak", label: "Stok rak"}, {key: "stok_gudang", label: "Stok gudang"}], DATA.summary));
+}
+
+function paneRec(p) {
+  const rows = DATA.recommendations;
+  const stores = [...new Set(rows.map(r => r.store_name))], cats = [...new Set(rows.map(r => r.category))];
+  const fStore = el("select", {}, el("option", {value: "", text: "Semua toko"}), ...stores.map(s => el("option", {value: s, text: s})));
+  const fStatus = el("select", {}, el("option", {value: "", text: "Semua status"}), ...["RISIKO HABIS", "ORDER SEKARANG", "AMAN", "OVERSTOCK"].map(s => el("option", {value: s, text: s})));
+  const fCat = el("select", {}, el("option", {value: "", text: "Semua kategori"}), ...cats.map(s => el("option", {value: s, text: s})));
+  const q = el("input", {type: "search", placeholder: "Cari produk / SKU"});
+  const host = el("div");
+  const draw = () => {
+    const t = q.value.toLowerCase();
+    const f = rows.filter(r => (!fStore.value || r.store_name === fStore.value) && (!fStatus.value || r.status === fStatus.value) &&
+      (!fCat.value || r.category === fCat.value) && (!t || r.name.toLowerCase().includes(t) || r.sku.toLowerCase().includes(t)));
+    host.replaceChildren(el("p", {class: "hint", text: f.length + " dari " + rows.length + " baris. Order = target stok − stok total, dibulatkan ke kelipatan pack."}),
+      table([
+        {key: "store_name", label: "Toko"}, {key: "name", label: "Produk"}, {key: "status", label: "Status"}, {key: "on_hand", label: "Stok total"},
+        {key: "shelf_stock", label: "Rak"}, {key: "backroom_stock", label: "Gudang"}, {key: "avg_daily_forecast", label: "Demand/hari"},
+        {key: "fc_lead_time", label: "Butuh selama lead time"}, {key: "lead_time_days", label: "Lead time"}, {key: "safety_stock", label: "Safety stock"},
+        {key: "order_up_to", label: "Target stok"}, {key: "cover_days", label: "Hari stok"}, {key: "order_qty", label: "Qty order"},
+        {key: "order_value", label: "Nilai order (Rp)"}, {key: "abc", label: "ABC"}], f, {cell: statusCell}));
+  };
+  [fStore, fStatus, fCat].forEach(x => x.onchange = draw); q.oninput = draw;
+  p.append(el("div", {class: "row", style: "margin:0 0 10px"}, fStore, fStatus, fCat, q), host); draw();
+}
+
+function paneSunday(p) {
+  const rows = DATA.recommendations.filter(r => r.display_gap > 0 || r.move_backroom_to_shelf > 0 || r.sunday_restock_runs > 0)
+    .sort((a, b) => b.display_gap - a.display_gap || b.sunday_restock_runs - a.sunday_restock_runs || b.move_backroom_to_shelf - a.move_backroom_to_shelf)
+    .map(r => ({...r, action: r.display_gap > 0 ? "Display tidak bisa penuh: transfer/order darurat " + r.display_gap + " unit"
+      : r.move_backroom_to_shelf > 0 ? "Pindahkan " + r.move_backroom_to_shelf + " unit dari gudang ke rak sebelum Minggu"
+      : "Siapkan restock rak " + r.sunday_restock_runs + "x saat jam ramai"}));
+  p.append(el("p", {class: "hint", text: "Rencana untuk Minggu " + DATA.meta.sunday + ". Target display dari planogram (atau perkiraan jika planogram tidak diunggah). " + rows.length + " SKU butuh tindakan."}));
+  p.append(table([
+    {key: "store_name", label: "Toko"}, {key: "name", label: "Produk"}, {key: "shelf_stock", label: "Rak"}, {key: "backroom_stock", label: "Gudang"},
+    {key: "sunday_target", label: "Target display"}, {key: "sunday_forecast", label: "Perkiraan terjual Minggu"}, {key: "stock_at_sunday_open", label: "Stok saat buka Minggu"},
+    {key: "display_gap", label: "Display kurang"}, {key: "move_backroom_to_shelf", label: "Pindah gudang→rak"}, {key: "sunday_restock_runs", label: "Restock rak (kali)"},
+    {key: "action", label: "Tindakan"}], rows));
+}
+
+function heat(v) { const a = Math.min(1, Math.abs(v - 1) / 0.6); return v >= 1 ? `rgba(80,120,230,${a * .75})` : `rgba(240,90,90,${a * .7})`; }
+function paneTrend(p) {
+  p.append(el("p", {class: "hint", text: "Indeks 1,00 = rata-rata harian. 1,50 berarti 50% di atas rata-rata. Hari lonjakan kampanye dikeluarkan" + (DATA.meta.event_days.length ? " (" + DATA.meta.event_days.join(", ") + ")." : ".")}));
+  const days = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"];
+  p.append(table([{key: "store_name", label: "Toko"}, {key: "category", label: "Kategori"}, ...days.map(x => ({key: x, label: x}))], DATA.dow_pivot, {
+    sortable: false, cell: (td, c, v) => { if (!days.includes(c.key)) return false; td.textContent = Number(v).toFixed(2); td.className = "num"; td.style.background = heat(v); return true; }}));
+  p.append(el("h3", {text: "SKU dengan lonjakan Minggu tertinggi (semua toko)"}));
+  p.append(table([{key: "name", label: "Produk"}, {key: "category", label: "Kategori"}, {key: "hari_puncak", label: "Hari puncak"}, {key: "indeks_minggu", label: "Indeks Minggu", dec: 2},
+    {key: "indeks_senin", label: "Indeks Senin", dec: 2}, {key: "display_minggu_diperbesar", label: "Display Minggu diperbesar"}], DATA.sku_peak));
+  if (DATA.display_effect.length) {
+    p.append(el("h3", {text: "Apakah display Minggu yang diperbesar menaikkan penjualan Minggu?"}));
+    p.append(table([{key: "category", label: "Kategori"}, {key: "Display normal", label: "Display normal", dec: 2}, {key: "Display Minggu diperbesar", label: "Display Minggu diperbesar", dec: 2}, {key: "selisih", label: "Selisih", dec: 2}], DATA.display_effect, {sortable: false}));
+    p.append(el("p", {class: "hint", text: "Ini perbandingan observasi. SKU unggulan biasanya dipilih untuk display karena memang laris, jadi selisih belum tentu efek display saja."}));
+  }
+}
+
+function paneRefund(p) {
+  if (!DATA.ref_reason.length) { p.append(el("p", {class: "hint", text: "Tidak ada data refund yang diunggah."})); return; }
+  p.append(el("h3", {text: "Refund per kategori dan alasan"}));
+  p.append(table([{key: "category", label: "Kategori"}, {key: "reason", label: "Alasan"}, {key: "units_refunded", label: "Unit refund"}, {key: "units_resellable", label: "Bisa dijual lagi"}, {key: "pct_dari_terjual", label: "% dari terjual", dec: 1}],
+    DATA.ref_reason.map(r => ({...r, pct_dari_terjual: r.pct_dari_terjual === null ? null : Math.round(r.pct_dari_terjual * 1000) / 10})), {}));
+  p.append(el("h3", {text: "Per toko"}));
+  p.append(table([{key: "store_name", label: "Toko"}, {key: "units_sold", label: "Unit terjual"}, {key: "units_refunded", label: "Unit refund"}, {key: "rate", label: "Refund rate (%)", dec: 1}],
+    DATA.ref_store.map(r => ({...r, rate: Math.round(r.refund_rate * 1000) / 10}))));
+  p.append(el("h3", {text: "12 SKU dengan refund rate tertinggi"}));
+  p.append(table([{key: "name", label: "Produk"}, {key: "category", label: "Kategori"}, {key: "units_sold", label: "Unit terjual"}, {key: "units_refunded", label: "Unit refund"}, {key: "rate", label: "Refund rate (%)", dec: 1}, {key: "alasan_utama", label: "Alasan utama"}],
+    DATA.ref_top.map(r => ({...r, rate: Math.round(r.refund_rate * 1000) / 10}))));
+}
+
+function paneAssump(p) {
+  p.append(table([{key: "Parameter", label: "Parameter"}, {key: "Nilai", label: "Nilai"}, {key: "Catatan", label: "Catatan"}], DATA.assumptions, {sortable: false, cell: td => { td.style.whiteSpace = "normal"; return false; }}));
+}
+
+// ---------------------------------------------------------------- format help
+fetch("/api/schema").then(r => r.json()).then(s => {
+  const sample = {sales: "sales_daily", refunds: "refunds", inventory: "inventory_snapshot", planogram: "planogram", skus: "skus", stores: "stores"};
+  $("fmt").replaceChildren(...s.files.map(f => el("tr", {}, el("td", {text: f.label}), el("td", {text: f.required ? "Wajib" : "Opsional"}),
+    el("td", {}, ...f.columns.map(c => el("code", {text: c})), f.kind === "refunds" ? el("span", {class: "hint", text: "  (opsional: reason, units_resellable)"}) : null,
+      f.kind === "skus" ? el("span", {class: "hint", text: "  (opsional: subcategory, hero_sunday)"}) : null),
+    el("td", {}, el("a", {href: "/sample/" + sample[f.kind] + ".csv", text: "unduh contoh"})))));
+}).catch(() => {});
+</script>
+</body>
+</html>
