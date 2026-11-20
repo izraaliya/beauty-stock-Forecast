@@ -146,7 +146,7 @@
     <div class="hero-grid">
       <div>
         <h1>Stok yang pas untuk setiap toko, setiap SKU</h1>
-        <p>Unggah data order dan planogram. Hasilnya: apa yang harus dipesan, apa yang hampir habis, dan SKU apa yang ramai di hari apa, supaya rak diisi sesuai hari.</p>
+        <p>Unggah data order dan planogram. Hasilnya: apa yang harus dipesan, apa yang hampir habis, dan SKU apa yang ramai di hari apa, ada di rak mana, dan produk apa yang biasa dibeli bersamanya.</p>
         <a class="cta" href="#unggah">Mulai dari data Anda</a>
       </div>
       <div id="heroShelf"></div>
@@ -367,9 +367,9 @@ function shelfMap() {
 }
 
 function renderTabs() {
-  const tabs = [["toko", "Per toko"], ["rekom", "Rekomendasi per SKU"], ["harian", "Isi rak per hari"], ["minggu", "Rak dan gudang hari Minggu"], ["tren", "Tren hari"], ["refund", "Refund"], ["asumsi", "Asumsi"]];
+  const tabs = [["toko", "Per toko"], ["rekom", "Rekomendasi per SKU"], ["hariRak", "Hari ramai dan rak"], ["bareng", "Dibeli bersama"], ["harian", "Isi rak per hari"], ["minggu", "Rak dan gudang hari Minggu"], ["tren", "Tren hari"], ["refund", "Refund"], ["asumsi", "Asumsi"]];
   $("tabs").replaceChildren(...tabs.map(([id, label]) => { const b = el("button", {class: id === tab ? "on" : "", text: label, type: "button", role: "tab", "aria-selected": id === tab}); b.onclick = () => { tab = id; preset = null; renderTabs(); }; return b; }));
-  const pane = $("pane"); pane.replaceChildren(); ({toko: paneStores, rekom: paneRec, harian: paneDaily, minggu: paneSunday, tren: paneTrend, refund: paneRefund, asumsi: paneAssump})[tab](pane);
+  const pane = $("pane"); pane.replaceChildren(); ({toko: paneStores, rekom: paneRec, hariRak: paneDayRack, bareng: paneBasket, harian: paneDaily, minggu: paneSunday, tren: paneTrend, refund: paneRefund, asumsi: paneAssump})[tab](pane);
 }
 
 function paneStores(p) {
@@ -404,6 +404,42 @@ function paneRec(p) {
   };
   [fStore, fStatus, fCat].forEach(x => x.onchange = draw); q.oninput = draw;
   p.append(el("div", {class: "filters"}, fStore, fStatus, fCat, q), host); draw();
+}
+
+const POS = {"Satu rak": "var(--jade)", "Beda rak": "var(--gold)"};
+const posCell = (td, c, v) => { if (c.key !== "posisi" && c.key !== "status") return false; if (v) td.append(el("span", {class: "mark"}, el("i", {style: "background:" + POS[v]}), v)); return true; };
+
+function paneDayRack(p) {
+  const rows = DATA.day_top, DAYS = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"];
+  const stores = [...new Set(rows.map(r => r.store_name))];
+  let store = stores[0], day = "Senin";
+  const fs = el("select", {"aria-label": "Toko"}, ...stores.map(s => el("option", {value: s, text: s})));
+  const dayBar = el("div", {class: "tabs", style: "margin-bottom:12px"});
+  const host = el("div");
+  const draw = () => {
+    dayBar.replaceChildren(...DAYS.map(d => { const b = el("button", {class: d === day ? "on" : "", type: "button", text: d}); b.onclick = () => { day = d; draw(); }; return b; }));
+    const f = rows.filter(r => r.store_name === store && r.hari === day);
+    const racks = DATA.day_rack.filter(r => r.store_name === store && r.hari === day).sort((a, b) => b.unit_per_hari - a.unit_per_hari);
+    host.replaceChildren(
+      racks.length ? el("p", {class: "hint", text: "Rak paling ramai hari " + day + ": " + racks.slice(0, 3).map(r => r.rak + " (" + fmt(r.unit_per_hari) + " unit/hari)").join(", ") + "."}) : null,
+      table([{key: "urutan", label: "#"}, {key: "name", label: "Produk"}, {key: "rata_unit", label: "Unit/hari", dec: 1}, {key: "indeks", label: "Indeks vs rata-rata", dec: 2},
+        {key: "lokasi", label: "Lokasi rak"}, {key: "sering_bareng", label: "Sering dibeli bersama"}, {key: "lokasi_partner", label: "Lokasi partner"}, {key: "posisi", label: "Posisi"}], f, {sortable: false, cell: posCell}));
+  };
+  fs.onchange = () => { store = fs.value; draw(); };
+  p.append(el("p", {class: "hint", text: "Pilih toko dan hari. Tabel menunjukkan produk terlaris hari itu, di rak mana, dan produk yang biasa dibeli bersamanya. 'Beda rak' berarti pasangan itu terpisah dan layak didekatkan." + (DATA.meta.has_locations ? "" : " Lokasi rak kosong karena kolom shelf_location belum ada di planogram.")}),
+    el("div", {class: "filters"}, fs), dayBar, host); draw();
+}
+
+function paneBasket(p) {
+  if (!DATA.pairs.length) { p.append(el("p", {class: "hint", text: DATA.meta.has_baskets ? "Belum ada pasangan produk yang cukup sering dibeli bersama." : "Belum ada data transaksi. Tambahkan sheet Transaksi (date, store_id, order_id, sku) di Data Order untuk melihat produk yang dibeli bersama."})); return; }
+  p.append(el("p", {class: "hint", text: "Analisis keranjang belanja (market basket, association rules) dari " + fmt(DATA.meta.n_orders) + " order. Lift di atas 1 berarti dua produk dibeli bersama lebih sering dari kebetulan. Contoh: lift 9 berarti sekitar 9 kali lebih sering."}));
+  p.append(table([{key: "sku_a", label: "Produk A"}, {key: "sku_b", label: "Produk B"}, {key: "orders_together", label: "Order bersama"}, {key: "support", label: "% semua order", dec: 2},
+    {key: "conf_ab", label: "Beli A, juga B (%)", dec: 1}, {key: "conf_ba", label: "Beli B, juga A (%)", dec: 1}, {key: "lift", label: "Lift", dec: 2}, {key: "toko_beda_rak", label: "Toko beda rak"}], DATA.pairs));
+  if (DATA.pairs_store.length) {
+    p.append(el("h3", {text: "Per toko: apakah pasangan ini berdekatan?"}));
+    p.append(table([{key: "store_name", label: "Toko"}, {key: "sku_a", label: "Produk A"}, {key: "sku_b", label: "Produk B"}, {key: "lokasi_a", label: "Lokasi A"}, {key: "lokasi_b", label: "Lokasi B"},
+      {key: "status", label: "Posisi"}, {key: "orders_together", label: "Order bersama"}, {key: "lift", label: "Lift di toko", dec: 2}], DATA.pairs_store, {cell: posCell}));
+  }
 }
 
 function paneDaily(p) {
@@ -477,7 +513,8 @@ fetch("/api/schema").then(r => r.json()).then(sc => {
   $("samples").replaceChildren("Unduh contoh: ", ...sc.sample_files.flatMap((n, i) => [i ? " · " : "", el("a", {href: "/sample/" + n, text: n})]));
   $("fmt").replaceChildren(...sc.files.map(f => el("tr", {}, el("td", {text: f.label}), el("td", {text: f.required ? "Wajib" : "Opsional"}),
     el("td", {}, ...f.columns.map(c => el("code", {text: c})), f.kind === "refunds" ? el("span", {class: "hint", text: " (opsional: reason, units_resellable)"}) : null,
-      f.kind === "skus" ? el("span", {class: "hint", text: " (opsional: subcategory, hero_sunday)"}) : null),
+      f.kind === "skus" ? el("span", {class: "hint", text: " (opsional: subcategory, hero_sunday)"}) : null,
+      f.kind === "planogram" ? el("span", {class: "hint", text: " (opsional: shelf_location, contoh S2-3)"}) : null),
     el("td", {text: f.sample}))));
 }).catch(() => {});
 </script>

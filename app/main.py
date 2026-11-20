@@ -78,6 +78,10 @@ def _payload(o: dict, ins: dict, job_id: str, detected: dict[str, str]) -> dict:
         "recommendations": _records(r),
         "dow_pivot": _records(o["dow_pivot"].round(2)),
         "sku_peak": _records(o["sku_peak"]),
+        "pairs": _records(o["pairs"]),
+        "pairs_store": _records(o["pairs_store"]),
+        "day_top": _records(o["day_top"]),
+        "day_rack": _records(o["day_rack"]),
         "display_effect": _records(o["display_effect"].round(3)),
         "ref_reason": _records(o["ref_reason"]),
         "ref_store": _records(o["ref_store"]),
@@ -159,7 +163,7 @@ def health() -> dict:
 def schema() -> dict:
     where = {"sales": "Data_Order.xlsx › Penjualan", "refunds": "Data_Order.xlsx › Refund",
              "planogram": "Data_Planogram_Kapasitas.xlsx › Planogram", "inventory": "Data_Planogram_Kapasitas.xlsx › Stok",
-             "skus": "Data_Planogram_Kapasitas.xlsx › SKU", "stores": "Data_Planogram_Kapasitas.xlsx › Toko"}
+             "skus": "Data_Planogram_Kapasitas.xlsx › SKU", "stores": "Data_Planogram_Kapasitas.xlsx › Toko", "baskets": "Data_Order.xlsx › Transaksi"}
     return {"files": [{"kind": k, "label": LABELS[k], "required": k in MANDATORY, "columns": REQUIRED[k], "sample": where[k]} for k in REQUIRED],
             "sample_files": SAMPLE_FILES}
 

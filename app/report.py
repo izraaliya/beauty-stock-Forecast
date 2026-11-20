@@ -170,6 +170,39 @@ def build_workbook(o: dict, OUT, ins: dict):
     wp.conditional_formatting.add(f"J5:J{PL}", CellIsRule(operator="greaterThan", formula=["0"], fill=PatternFill("solid", bgColor="F8CBAD", fgColor="F8CBAD")))
     wp.conditional_formatting.add(f"K5:K{PL}", CellIsRule(operator="greaterThan", formula=["0"], fill=PatternFill("solid", bgColor="FFE699", fgColor="FFE699")))
 
+    # ======================================================================= Hari & Rak
+    dt = o["day_top"]
+    if len(dt):
+        wd = wb.create_sheet("Hari & Rak")
+        title(wd, "Produk Ramai per Hari dan Lokasi Raknya", "Delapan SKU dengan rata-rata penjualan tertinggi per toko per hari, lokasi rak, dan produk yang paling sering dibeli bersamanya.")
+        cols = ["Toko", "Hari", "Urutan", "Produk", "Rata-rata unit/hari", "Indeks vs rata-rata", "Lokasi rak", "Sering dibeli bersama", "Lokasi rak partner", "Posisi"]
+        header(wd, 4, cols, [26, 10, 8, 36, 12, 12, 11, 36, 12, 11])
+        for i, x in enumerate(dt.itertuples(index=False), 5):
+            vals = [x.store_name, x.hari, x.urutan, x.name, x.rata_unit, x.indeks, x.lokasi, x.sering_bareng, x.lokasi_partner, x.posisi]
+            for j, v in enumerate(vals, 1):
+                put(wd, i, j, v, fmt="0.0" if j == 5 else "0.00" if j == 6 else None)
+        wd.conditional_formatting.add(f"J5:J{4 + len(dt)}", CellIsRule(operator="equal", formula=['"Beda rak"'], fill=PatternFill("solid", bgColor="FFE699", fgColor="FFE699")))
+        wd.freeze_panes = "A5"
+        wd.auto_filter.ref = f"A4:J{4 + len(dt)}"
+
+    # ======================================================================= Dibeli Bersama
+    pr = o["pairs"]
+    if len(pr):
+        wb_ = wb.create_sheet("Dibeli Bersama")
+        title(wb_, "Produk yang Sering Dibeli Bersama (Analisis Keranjang Belanja)", "Lift di atas 1 berarti dua produk dibeli bersama lebih sering dari kebetulan. Kolom Toko beda rak = jumlah toko yang menaruhnya di rak berbeda.")
+        header(wb_, 4, ["Produk A", "Produk B", "Jumlah order bersama", "% dari semua order", "Dari order A, juga beli B (%)", "Dari order B, juga beli A (%)", "Lift", "Toko beda rak"], [36, 36, 12, 12, 14, 14, 9, 10])
+        for i, x in enumerate(pr.itertuples(index=False), 5):
+            for j, v in enumerate([x.sku_a, x.sku_b, x.orders_together, x.support, x.conf_ab, x.conf_ba, x.lift, x.toko_beda_rak], 1):
+                put(wb_, i, j, v, fmt="0.00" if j in (4, 7) else "0.0" if j in (5, 6) else None)
+        ps = o["pairs_store"]
+        r0 = 6 + len(pr)
+        wb_.cell(row=r0, column=1, value="Per toko: apakah pasangan ini ditaruh berdekatan?").font = f_bold
+        header(wb_, r0 + 1, ["Toko", "Produk A", "Produk B", "Lokasi A", "Lokasi B", "Posisi", "Order bersama", "Lift di toko"])
+        for i, x in enumerate(ps.itertuples(index=False), r0 + 2):
+            for j, v in enumerate([x.store_name, x.sku_a, x.sku_b, x.lokasi_a, x.lokasi_b, x.status, x.orders_together, x.lift], 1):
+                put(wb_, i, j, v, fmt="0.00" if j == 8 else None)
+        wb_.conditional_formatting.add(f"F{r0 + 2}:F{r0 + 1 + len(ps)}", CellIsRule(operator="equal", formula=['"Beda rak"'], fill=PatternFill("solid", bgColor="FFE699", fgColor="FFE699")))
+
     # ======================================================================= Tren Hari
     wt = wb.create_sheet("Tren Hari")
     title(wt, "Tren Penjualan per Hari", "Indeks 1,00 = rata-rata harian. 1,50 berarti 50% di atas rata-rata. 180 hari, hari event (10.10, 11.11) dikeluarkan.")

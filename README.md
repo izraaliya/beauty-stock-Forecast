@@ -14,6 +14,8 @@ A short written summary turns the numbers into prioritised actions. It is genera
 | **Order quantity** | Order-up-to level minus stock on hand, rounded up to pack size |
 | **Weekday trends** | Day-of-week index per store and category (heatmap), peak day per SKU |
 | **Shelf vs backroom** | For the next Sunday: display target vs stock, units to move backroom → shelf, units short, restock runs needed |
+| **Busy products per day + shelf** | Per store and weekday: best-selling SKUs, which rack they sit on (`shelf_location`), rack traffic |
+| **Bought together** | Market basket analysis (association rules: support, confidence, lift) from order lines, flags pairs placed on different racks |
 | **Refund analysis** | By reason, store and SKU; only resellable returns go back into stock |
 | **Summary** | Headline, prioritised actions and watch-outs, written from the computed numbers |
 | **Excel export** | Workbook with live formulas: edit shelf/backroom counts and status and order quantities recalculate |
@@ -36,8 +38,9 @@ Upload **two Excel files** (or any mix of Excel and CSV). The kind of every shee
 | File | Sheet | Required | Columns |
 |------|-------|----------|---------|
 | `Data_Order.xlsx` | Penjualan | yes | `date, store_id, sku, units_sold` |
+| | Transaksi | no | `date, store_id, order_id, sku` (one row per product in an order) |
 | | Refund | no | `date, store_id, sku, units_refunded` (optional: `reason`, `units_resellable`) |
-| `Data_Planogram_Kapasitas.xlsx` | Planogram | no | `store_id, sku, shelf_target_weekday, shelf_target_sunday` (shelf capacity, weekday vs Sunday) |
+| `Data_Planogram_Kapasitas.xlsx` | Planogram | no | `store_id, sku, shelf_target_weekday, shelf_target_sunday` (shelf capacity, weekday vs Sunday; optional `shelf_location`, e.g. `S2-3` = rack S2, level 3) |
 | | Stok | yes | `store_id, sku, shelf_stock, backroom_stock` |
 | | SKU | yes | `sku, name, category, price, unit_cost, lead_time_days, pack_size` (optional: `subcategory`, `hero_sunday`) |
 | | Toko | no | `store_id, store_name` |

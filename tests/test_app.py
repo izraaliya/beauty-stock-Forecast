@@ -39,7 +39,7 @@ def result():
 
 
 def test_two_workbooks_cover_every_kind():
-    assert set(all_tables()) == {"sales", "refunds", "inventory", "planogram", "skus", "stores"}
+    assert set(all_tables()) == {"sales", "refunds", "inventory", "planogram", "skus", "stores", "baskets"}
 
 
 def test_analysis_invariants(result):
@@ -137,7 +137,7 @@ def test_health_index_schema():
     assert client.get("/health").json() == {"status": "ok"}
     assert "Beauty Stock Forecast" in client.get("/").text
     sc = client.get("/api/schema").json()
-    assert len(sc["files"]) == 6 and sc["sample_files"] == ["Data_Order.xlsx", "Data_Planogram_Kapasitas.xlsx"]
+    assert len(sc["files"]) == 7 and sc["sample_files"] == ["Data_Order.xlsx", "Data_Planogram_Kapasitas.xlsx"]
 
 
 def test_sample_endpoint_and_report(monkeypatch):
@@ -147,7 +147,10 @@ def test_sample_endpoint_and_report(monkeypatch):
     assert r.status_code == 200
     d = r.json()
     assert d["kpi"]["combos"] == 246 and d["insight"]["source"] == "aturan"
-    assert set(d["detected_files"]) == {"sales", "refunds", "inventory", "planogram", "skus", "stores"}
+    assert set(d["detected_files"]) == {"sales", "refunds", "inventory", "planogram", "skus", "stores", "baskets"}
+    assert len(d["pairs"]) >= 6 and d["meta"]["has_locations"] and len(d["day_top"]) == 6 * 7 * 8
+    top = {frozenset((x["sku_a"], x["sku_b"])) for x in d["pairs"][:8]}
+    assert frozenset(("Cushion Foundation SPF35", "Loose Setting Powder")) in top
     rep = client.get(f"/api/report/{d['job_id']}.xlsx")
     assert rep.status_code == 200 and rep.content[:2] == b"PK"
 
@@ -211,8 +214,9 @@ def test_hanging_writer_falls_back(monkeypatch):
     monkeypatch.setenv("GEMINI_API_KEY", "fake")
     monkeypatch.setenv("AI_TIMEOUT_SECONDS", "1")
     monkeypatch.setattr(insights, "narrative_insight", lambda o: time.sleep(30))
+    o = run_analysis(subset(*MIN))
     t = time.time()
-    ins = insights.make_insight(run_analysis(subset(*MIN)), smart_summary=True)
+    ins = insights.make_insight(o, smart_summary=True)
     assert time.time() - t < 10
     assert ins["source"] == "aturan" and ins["note"]
 

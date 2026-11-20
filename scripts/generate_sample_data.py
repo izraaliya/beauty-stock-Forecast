@@ -119,6 +119,11 @@ for _, st in stores.iterrows():
         sunday_cap = max(sunday_cap, weekday_cap)
         plan_rows.append((st.store_id, s.sku, weekday_cap, sunday_cap))
 planogram = pd.DataFrame(plan_rows, columns=["store_id", "sku", "shelf_target_weekday", "shelf_target_sunday"])
+RACK = {"Cleanser": "S1", "Toner": "S1", "Serum": "S2", "Treatment": "S2", "Moisturizer": "S3", "Sunscreen": "S3",
+        "Mask": "S4", "Lip care": "S4", "Body": "S4", "Lips": "M1", "Face": "M2", "Eyes": "M3", "Cheeks": "M4",
+        "Remover": "M4", "Tools": "M4", "Nails": "M4"}
+sub_of = skus.set_index("sku").subcategory.to_dict()
+planogram["shelf_location"] = [f"{RACK[sub_of[k]]}-{int(rng.integers(1, 5))}" for k in planogram.sku]
 plan_idx = planogram.set_index(["store_id", "sku"])
 
 # ---------------------------------------------------------------- calendar effects
@@ -175,6 +180,36 @@ for _, st in stores.iterrows():
 sales = pd.DataFrame(sales_rows, columns=["date", "store_id", "sku", "units_sold"])
 refunds = pd.DataFrame(refund_rows, columns=["date", "store_id", "sku", "units_refunded", "reason", "units_resellable"])
 
+# ---------------------------------------------------------------- baskets (order level, last 90 days)
+PAIRS = [("Niacinamide 10% Serum 30ml", "Ceramide Barrier Moisturizer 50g", 0.40), ("Gentle Foaming Cleanser 100ml", "Hydrating Toner 150ml", 0.38),
+         ("Daily Sunscreen SPF50 PA++++ 40ml", "Vitamin C Brightening Serum 20ml", 0.30), ("Cushion Foundation SPF35", "Loose Setting Powder", 0.35),
+         ("Lip Tint Velvet", "Lip Balm Repair SPF15 4g", 0.28), ("Waterproof Mascara Volume", "Eyeliner Pen Ultra Black", 0.40),
+         ("Makeup Remover Balm 100g", "Gentle Foaming Cleanser 100ml", 0.30), ("Blush Cream Pot", "Highlighter Liquid Glow", 0.32)]
+id_of = dict(zip(skus.name, skus.sku))
+partners = {}
+for a, b, p in PAIRS:
+    partners.setdefault(id_of[a], []).append((id_of[b], p))
+    partners.setdefault(id_of[b], []).append((id_of[a], p))
+tx_rows, order_no = [], 0
+daily = sales[sales.date > END - pd.Timedelta(days=90)].groupby(["date", "store_id"])
+for (d, st), grp in daily:
+    ids, w = grp.sku.to_numpy(), grp.units_sold.to_numpy().astype(float)
+    if w.sum() <= 0:
+        continue
+    p_ = w / w.sum()
+    for first in rng.choice(ids, size=max(1, int(round(w.sum() / 1.8))), p=p_):
+        order_no += 1
+        basket = {first}
+        for other, pr in partners.get(first, []):
+            if rng.random() < pr:
+                basket.add(other)
+        if rng.random() < 0.22:
+            basket.add(rng.choice(ids, p=p_))
+        oid = f"{st}-{d:%y%m%d}-{order_no:06d}"
+        for k in basket:
+            tx_rows.append((d, st, oid, k))
+transactions = pd.DataFrame(tx_rows, columns=["date", "store_id", "order_id", "sku"])
+
 # ---------------------------------------------------------------- inventory snapshot at END (shelf vs backroom)
 recent = sales[sales.date > END - pd.Timedelta(days=28)].groupby(["store_id", "sku"]).units_sold.mean()
 inv_rows = []
@@ -226,6 +261,7 @@ GUIDE_ORDER = [
     ("Penjualan", "store_id", "Kode toko", "Ya"),
     ("Penjualan", "sku", "Kode SKU, harus ada di sheet SKU (file planogram)", "Ya"),
     ("Penjualan", "units_sold", "Jumlah unit terjual hari itu", "Ya"),
+    ("Transaksi", "date, store_id, order_id, sku", "Satu baris per produk dalam satu struk/order. Dipakai untuk membaca barang yang dibeli bersama", "Tidak"),
     ("Refund", "date", "Tanggal refund", "Ya"),
     ("Refund", "store_id / sku", "Toko dan SKU yang direfund", "Ya"),
     ("Refund", "units_refunded", "Jumlah unit direfund", "Ya"),
@@ -236,6 +272,7 @@ GUIDE_PLANO = [
     ("Planogram", "store_id, sku", "Toko dan SKU", "Tidak"),
     ("Planogram", "shelf_target_weekday", "Kapasitas / target isi rak hari biasa (unit yang ditampilkan)", "Tidak"),
     ("Planogram", "shelf_target_sunday", "Kapasitas / target isi rak hari Minggu (SKU unggulan biasanya lebih besar)", "Tidak"),
+    ("Planogram", "shelf_location", "Lokasi di toko, format RAK-TINGKAT, misalnya S2-3 (rak S2, tingkat 3). Dipakai untuk melihat produk ramai ada di rak mana", "Tidak"),
     ("Stok", "store_id, sku", "Toko dan SKU", "Ya"),
     ("Stok", "shelf_stock", "Stok yang ada di rak (display) saat ini", "Ya"),
     ("Stok", "backroom_stock", "Stok yang ada di gudang toko saat ini", "Ya"),
@@ -247,7 +284,7 @@ GUIDE_PLANO = [
 ]
 
 OUT.mkdir(exist_ok=True)
-write_workbook(OUT / "Data_Order.xlsx", {"Penjualan": sales, "Refund": refunds}, GUIDE_ORDER)
+write_workbook(OUT / "Data_Order.xlsx", {"Penjualan": sales, "Refund": refunds, "Transaksi": transactions}, GUIDE_ORDER)
 write_workbook(OUT / "Data_Planogram_Kapasitas.xlsx",
                {"Planogram": planogram, "Stok": inventory.drop(columns="snapshot_date"),
                 "SKU": skus.drop(columns=["base_rate"]), "Toko": stores.drop(columns=["scale"])}, GUIDE_PLANO)

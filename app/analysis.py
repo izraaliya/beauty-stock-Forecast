@@ -27,11 +27,12 @@ REQUIRED = {
     "planogram": ["store_id", "sku", "shelf_target_weekday", "shelf_target_sunday"],
     "skus": ["sku", "name", "category", "price", "unit_cost", "lead_time_days", "pack_size"],
     "stores": ["store_id", "store_name"],
+    "baskets": ["date", "store_id", "order_id", "sku"],
 }
 MANDATORY = ["sales", "inventory", "skus"]
 LABELS = {
     "sales": "Penjualan harian", "refunds": "Refund", "inventory": "Stok rak & gudang",
-    "planogram": "Planogram / target display", "skus": "Master SKU", "stores": "Master toko",
+    "planogram": "Planogram / target display", "skus": "Master SKU", "stores": "Master toko", "baskets": "Transaksi (keranjang belanja)",
 }
 RESELLABLE_BY_REASON = {"wrong_shade": 0.5, "changed_mind": 0.4, "wrong_product": 0.6,
                         "damaged_leaked": 0.0, "allergic_reaction": 0.0}
@@ -56,10 +57,13 @@ class Params:
     z: dict = field(default_factory=lambda: {"A": 1.65, "B": 1.28, "C": 0.84})
 
 
+from .basket import basket_analysis, clean_baskets, daily_shelf_map
+
+
 # ---------------------------------------------------------------- file detection & cleaning
 def detect_kind(df: pd.DataFrame) -> str | None:
     cols = set(df.columns)
-    for kind in ("sales", "refunds", "inventory", "planogram", "skus", "stores"):
+    for kind in ("sales", "refunds", "inventory", "planogram", "skus", "stores", "baskets"):
         if set(REQUIRED[kind]) <= cols:
             return kind
     return None
@@ -157,9 +161,16 @@ def clean(tables: dict[str, pd.DataFrame]) -> tuple[dict[str, pd.DataFrame], lis
             p[c] = p[c].astype(str).str.strip()
         for c in ("shelf_target_weekday", "shelf_target_sunday"):
             p[c] = _num(p, c, "planogram", 0).round().astype(int)
+        if "shelf_location" in p.columns:
+            p["shelf_location"] = p.shelf_location.fillna("").astype(str).str.strip()
         out["planogram"] = p.drop_duplicates(["store_id", "sku"], keep="last")
     else:
         warnings.append("Planogram tidak diunggah: target display diperkirakan dari penjualan.")
+
+    if "baskets" in tables:
+        out["baskets"] = clean_baskets(tables["baskets"], set(out["skus"].sku), warnings, DataError)
+    else:
+        warnings.append("Data transaksi (order_id) tidak diunggah: analisis barang yang dibeli bersama dilewati.")
 
     if "stores" in tables:
         st = tables["stores"].copy()
@@ -459,10 +470,23 @@ def run_analysis(raw: dict[str, pd.DataFrame], params: Params | None = None) -> 
         ("Batasan", "Penjualan saat stok habis tidak tercatat", "Demand yang hilang karena stok kosong tidak terhitung"),
     ], columns=["Parameter", "Nilai", "Catatan"])
 
+    loc = {}
+    if "planogram" in t and "shelf_location" in t["planogram"].columns:
+        pl_ = t["planogram"]
+        loc = {(a, b): c for a, b, c in zip(pl_.store_id, pl_.sku, pl_.shelf_location) if c}
+    if "baskets" in t and len(t["baskets"]):
+        ba = basket_analysis(t["baskets"], skus, stores, loc)
+        if not len(ba["pairs"]):
+            warnings.append("Transaksi terbaca, tapi belum ada pasangan produk yang cukup sering dibeli bersama.")
+    else:
+        ba = dict(pairs=pd.DataFrame(), pairs_store=pd.DataFrame(), partner={}, n_orders=0)
+    day_top, day_rack = daily_shelf_map(W, dow, ne, skus, stores, loc, ba["partner"], {})
+
     return dict(
+        pairs=ba["pairs"], pairs_store=ba["pairs_store"], day_top=day_top, day_rack=day_rack,
         rec=rec, summary=summary, dow_pivot=dow_pivot, sku_peak=sku_peak, display_effect=display_effect,
         ref_reason=by_reason, ref_store=by_store, ref_top=ref_top, assumptions=assumptions,
-        meta=dict(today=today, sunday=sunday.date(), n_rows=len(rec), n_days=D,
+        meta=dict(has_baskets=bool(ba['n_orders']), has_locations=bool(loc), n_orders=int(ba['n_orders']), today=today, sunday=sunday.date(), n_rows=len(rec), n_days=D,
                   date_from=str(dates[0].date()), date_to=str(last_day.date()),
                   total_units=int(total_sold), refund_units=refund_units, event_days=event_days,
                   warnings=warnings, params=dict(review_days=P.review_days, overstock_days=P.overstock_days)),
