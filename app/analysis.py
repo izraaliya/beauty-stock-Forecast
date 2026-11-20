@@ -333,7 +333,13 @@ def run_analysis(raw: dict[str, pd.DataFrame], params: Params | None = None) -> 
         move = int(min(back, max(0, sun_target - shelf)))
         runs = max(0, int(np.ceil(sun_fc / sun_target)) - 1) if sun_target > 0 else 0
 
+        cap = max(wk_target, sun_target)
+        day_fc = [float(base * tr_d * idx[d] * (1 - resell)) for d in range(7)]
+        day_fill = {f"isi_{DOW_NAMES[d]}": (min(cap, max(1, int(np.ceil(day_fc[d] * 1.25)))) if day_fc[d] > 0.05 else 0) for d in range(7)}
+        peak_day = DOW_NAMES[int(np.argmax(day_fc))]
+
         rows.append(dict(
+            **day_fill, hari_puncak=peak_day, kapasitas_rak=cap,
             store_id=store, sku=sku, abc=abc[combo], lead_time_days=L, pack_size=pack,
             shelf_stock=shelf, backroom_stock=back, on_hand=on_hand,
             base_daily=round(base, 3), trend_factor=round(tr_d, 3), avg_daily_forecast=avg_daily,

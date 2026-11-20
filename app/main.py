@@ -58,7 +58,7 @@ def _payload(o: dict, ins: dict, job_id: str, detected: dict[str, str]) -> dict:
     cols = ["store_name", "sku", "name", "category", "abc", "lead_time_days", "pack_size", "shelf_stock", "backroom_stock",
             "on_hand", "avg_daily_forecast", "fc_lead_time", "safety_stock", "reorder_point", "order_up_to", "cover_days",
             "status", "order_qty", "unit_cost", "order_value", "sunday_target", "sunday_forecast", "stock_at_sunday_open",
-            "display_gap", "move_backroom_to_shelf", "sunday_restock_runs"]
+            "display_gap", "move_backroom_to_shelf", "sunday_restock_runs", "hari_puncak", "kapasitas_rak"] + [c for c in rec.columns if c.startswith("isi_")]
     r = rec[cols].copy()
     for c in ("avg_daily_forecast", "fc_lead_time", "safety_stock", "sunday_forecast", "stock_at_sunday_open"):
         r[c] = r[c].round(1)

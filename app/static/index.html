@@ -146,7 +146,7 @@
     <div class="hero-grid">
       <div>
         <h1>Stok yang pas untuk setiap toko, setiap SKU</h1>
-        <p>Unggah data order dan planogram. Hasilnya: apa yang harus dipesan, apa yang hampir habis, dan seberapa penuh rak harus diisi untuk hari Minggu.</p>
+        <p>Unggah data order dan planogram. Hasilnya: apa yang harus dipesan, apa yang hampir habis, dan SKU apa yang ramai di hari apa, supaya rak diisi sesuai hari.</p>
         <a class="cta" href="#unggah">Mulai dari data Anda</a>
       </div>
       <div id="heroShelf"></div>
@@ -367,9 +367,9 @@ function shelfMap() {
 }
 
 function renderTabs() {
-  const tabs = [["toko", "Per toko"], ["rekom", "Rekomendasi per SKU"], ["minggu", "Rak dan gudang hari Minggu"], ["tren", "Tren hari"], ["refund", "Refund"], ["asumsi", "Asumsi"]];
+  const tabs = [["toko", "Per toko"], ["rekom", "Rekomendasi per SKU"], ["harian", "Isi rak per hari"], ["minggu", "Rak dan gudang hari Minggu"], ["tren", "Tren hari"], ["refund", "Refund"], ["asumsi", "Asumsi"]];
   $("tabs").replaceChildren(...tabs.map(([id, label]) => { const b = el("button", {class: id === tab ? "on" : "", text: label, type: "button", role: "tab", "aria-selected": id === tab}); b.onclick = () => { tab = id; preset = null; renderTabs(); }; return b; }));
-  const pane = $("pane"); pane.replaceChildren(); ({toko: paneStores, rekom: paneRec, minggu: paneSunday, tren: paneTrend, refund: paneRefund, asumsi: paneAssump})[tab](pane);
+  const pane = $("pane"); pane.replaceChildren(); ({toko: paneStores, rekom: paneRec, harian: paneDaily, minggu: paneSunday, tren: paneTrend, refund: paneRefund, asumsi: paneAssump})[tab](pane);
 }
 
 function paneStores(p) {
@@ -404,6 +404,26 @@ function paneRec(p) {
   };
   [fStore, fStatus, fCat].forEach(x => x.onchange = draw); q.oninput = draw;
   p.append(el("div", {class: "filters"}, fStore, fStatus, fCat, q), host); draw();
+}
+
+function paneDaily(p) {
+  const days = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"];
+  const rows = DATA.recommendations.map(r => ({...r, total_isi: days.reduce((a, d) => a + (r["isi_" + d] || 0), 0)})).sort((a, b) => b.total_isi - a.total_isi);
+  const stores = [...new Set(rows.map(r => r.store_name))];
+  const fs = el("select", {"aria-label": "Toko"}, el("option", {value: "", text: "Semua toko"}), ...stores.map(s => el("option", {value: s, text: s})));
+  const q = el("input", {type: "search", placeholder: "Cari produk", "aria-label": "Cari produk"});
+  const host = el("div");
+  const draw = () => {
+    const t = q.value.toLowerCase();
+    const f = rows.filter(r => (!fs.value || r.store_name === fs.value) && (!t || r.name.toLowerCase().includes(t)));
+    host.replaceChildren(table([{key: "store_name", label: "Toko"}, {key: "name", label: "Produk"}, {key: "hari_puncak", label: "Hari paling ramai"},
+      ...days.map(d => ({key: "isi_" + d, label: d})), {key: "kapasitas_rak", label: "Kapasitas rak"}], f.slice(0, 600), {cell: (td, c, v, r) => {
+        if (!c.key.startsWith("isi_")) return false;
+        td.textContent = fmt(v); td.className = "num"; if (c.key === "isi_" + r.hari_puncak) { td.style.background = "rgba(232,163,61,.35)"; td.style.fontWeight = "600"; } return true; }}));
+  };
+  fs.onchange = draw; q.oninput = draw;
+  p.append(el("p", {class: "hint", text: "Jumlah unit yang sebaiknya ada di rak saat toko buka, per hari. Dihitung dari perkiraan penjualan hari itu ditambah cadangan 25%, tidak melebihi kapasitas rak. Hari paling ramai ditandai kuning."}),
+    el("div", {class: "filters"}, fs, q), host); draw();
 }
 
 function paneSunday(p) {
