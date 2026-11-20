@@ -251,8 +251,7 @@ def build_workbook(o: dict, OUT, ins: dict):
     findings = [ins["headline"], ins["summary"]] + \
         [f"{i}. {p['title']}: {p['detail']}" for i, p in enumerate(ins["priorities"], 1)] + \
         ["Perhatian: " + w for w in ins["watchouts"]]
-    if ins.get("source") == "gemini":
-        findings.append("Ringkasan di atas dibuat AI (Gemini) dari angka hasil analisis. Cek kembali sebelum dipakai untuk keputusan besar.")
+    findings.append("Ringkasan disusun otomatis dari angka pada sheet Rekomendasi. Angka di sheet adalah acuan utama.")
     wsR.column_dimensions["A"].width = 26
     for c in "BCDEFGHI":
         wsR.column_dimensions[c].width = 15

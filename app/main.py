@@ -24,7 +24,7 @@ MAX_FILES = 8
 MAX_JOBS = 20
 JOB_TTL = 60 * 60
 
-app = FastAPI(title="Beauty Stock AI", description="Upload sales, refund and stock data, get a stock plan per store per SKU.", version="1.0.0")
+app = FastAPI(title="Beauty Stock Forecast", description="Upload sales, refund and stock data, get a stock plan per store per SKU.", version="1.0.0")
 
 _jobs: "OrderedDict[str, dict]" = OrderedDict()
 _lock = threading.Lock()
@@ -86,12 +86,12 @@ def _payload(o: dict, ins: dict, job_id: str, detected: dict[str, str]) -> dict:
     }
 
 
-def _run(tables: dict, detected: dict, review_days: int, overstock_days: int, use_ai: bool) -> dict:
+def _run(tables: dict, detected: dict, review_days: int, overstock_days: int, smart_summary: bool) -> dict:
     try:
         o = run_analysis(tables, Params(review_days=review_days, overstock_days=overstock_days))
     except DataError as exc:
         raise HTTPException(status_code=422, detail=str(exc))
-    ins = make_insight(o, use_ai)
+    ins = make_insight(o, smart_summary)
     job_id = _remember(o)
     try:
         build_workbook(o, _tmp / f"{job_id}.xlsx", ins)
@@ -166,7 +166,7 @@ def schema() -> dict:
 
 @app.post("/api/analyze")
 async def analyze(files: list[UploadFile] = File(...), review_days: int = Form(7), overstock_days: int = Form(45),
-                  use_ai: bool = Form(True)):
+                  smart_summary: bool = Form(True)):
     _check_opts(review_days, overstock_days)
     if len(files) > MAX_FILES:
         raise HTTPException(status_code=422, detail=f"Maksimal {MAX_FILES} file.")
@@ -177,17 +177,17 @@ async def analyze(files: list[UploadFile] = File(...), review_days: int = Form(7
             raise HTTPException(status_code=413, detail=f"{f.filename}: ukuran lebih dari 25 MB.")
         uploads.append((f.filename or "file", data))
     tables, detected = _collect(uploads)
-    return JSONResponse(_run(tables, detected, review_days, overstock_days, use_ai))
+    return JSONResponse(_run(tables, detected, review_days, overstock_days, smart_summary))
 
 
 SAMPLE_FILES = ["Data_Order.xlsx", "Data_Planogram_Kapasitas.xlsx"]
 
 
 @app.post("/api/analyze/sample")
-def analyze_sample(review_days: int = Form(7), overstock_days: int = Form(45), use_ai: bool = Form(True)):
+def analyze_sample(review_days: int = Form(7), overstock_days: int = Form(45), smart_summary: bool = Form(True)):
     _check_opts(review_days, overstock_days)
     tables, detected = _collect([(n, (SAMPLE / n).read_bytes()) for n in SAMPLE_FILES])
-    return JSONResponse(_run(tables, detected, review_days, overstock_days, use_ai))
+    return JSONResponse(_run(tables, detected, review_days, overstock_days, smart_summary))
 
 
 @app.get("/api/report/{job_id}.xlsx")

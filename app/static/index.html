@@ -3,147 +3,277 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Beauty Stock AI</title>
+<title>Beauty Stock Forecast</title>
 <link rel="icon" href="data:,">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-  :root { --bg:#f6f7fb; --card:#fff; --ink:#1b2437; --muted:#667085; --line:#e4e7ee; --accent:#6d4aff; --accent2:#ede9ff;
-          --red:#fde2e0; --redt:#b42318; --amber:#fff1cc; --ambert:#93600a; --blue:#dcebff; --bluet:#1b5fb4; --green:#dcf5e3; --greent:#1d7a3a; }
-  * { box-sizing: border-box; }
-  body { margin:0; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; background:var(--bg); color:var(--ink); line-height:1.5; }
-  header { background:linear-gradient(135deg,#3b2a99,#6d4aff); color:#fff; padding:28px 20px; }
-  header .in, main { max-width:1180px; margin:0 auto; }
-  header h1 { margin:0 0 4px; font-size:26px; } header p { margin:0; opacity:.9; }
-  main { padding:20px; }
-  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:18px; margin-bottom:16px; }
-  h2 { margin:0 0 10px; font-size:17px; } h3 { margin:14px 0 8px; font-size:15px; }
-  .drop { border:2px dashed #c4b8ff; border-radius:12px; padding:26px; text-align:center; color:var(--muted); background:#faf9ff; cursor:pointer; }
-  .drop.over { background:var(--accent2); border-color:var(--accent); }
-  .drop b { color:var(--ink); }
-  .chips { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
-  .chip { background:var(--accent2); color:#3b2a99; border-radius:999px; padding:4px 10px; font-size:13px; }
-  .row { display:flex; flex-wrap:wrap; gap:14px; align-items:center; margin-top:14px; }
-  label { font-size:14px; color:var(--muted); } input[type=number], select, input[type=search] { border:1px solid var(--line); border-radius:8px; padding:7px 9px; font:inherit; background:#fff; }
-  input[type=number] { width:70px; }
-  button { background:var(--accent); color:#fff; border:0; border-radius:8px; padding:10px 18px; font:inherit; font-weight:600; cursor:pointer; }
-  button.ghost { background:#fff; color:var(--accent); border:1px solid var(--accent); }
-  button:disabled { opacity:.55; cursor:wait; }
-  a.btn { display:inline-block; text-decoration:none; background:#fff; color:var(--accent); border:1px solid var(--accent); border-radius:8px; padding:9px 16px; font-weight:600; }
-  details summary { cursor:pointer; color:var(--accent); font-weight:600; margin-top:12px; }
-  .err { background:var(--red); color:var(--redt); border-radius:8px; padding:10px 12px; margin-top:12px; white-space:pre-wrap; }
-  .warn { background:var(--amber); color:var(--ambert); border-radius:8px; padding:8px 12px; margin-top:8px; font-size:14px; }
-  .kpis { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; margin-bottom:16px; }
-  .kpi { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px; }
-  .kpi .v { font-size:24px; font-weight:700; white-space:nowrap; } .kpi .l { color:var(--muted); font-size:13px; }
-  .kpi.r .v { color:var(--redt); } .kpi.a .v { color:var(--ambert); } .kpi.b .v { color:var(--bluet); } .kpi.g .v { color:var(--greent); }
-  .ai h2 { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
-  .badge { font-size:12px; font-weight:600; border-radius:999px; padding:2px 9px; background:var(--accent2); color:#3b2a99; }
-  .headline { font-size:18px; font-weight:700; margin:6px 0; }
-  .prio { display:flex; gap:10px; margin:8px 0; } .prio .n { flex:0 0 26px; height:26px; border-radius:50%; background:var(--accent); color:#fff; display:grid; place-items:center; font-size:13px; font-weight:700; }
-  .prio .t { font-weight:600; } .prio .d { color:var(--muted); font-size:14px; }
-  ul.w { margin:6px 0 0; padding-left:20px; color:var(--muted); font-size:14px; }
-  .note { color:var(--muted); font-size:13px; margin-top:8px; }
-  .tabs { display:flex; flex-wrap:wrap; gap:4px; border-bottom:1px solid var(--line); margin-bottom:12px; }
-  .tabs button { background:none; color:var(--muted); border-radius:8px 8px 0 0; padding:9px 14px; border-bottom:3px solid transparent; }
-  .tabs button.on { color:var(--accent); border-bottom-color:var(--accent); }
-  .tw { overflow:auto; max-height:560px; border:1px solid var(--line); border-radius:8px; }
-  table { border-collapse:collapse; width:100%; font-size:13px; }
-  th { position:sticky; top:0; background:#f1f2f8; text-align:left; padding:8px 10px; white-space:nowrap; cursor:pointer; user-select:none; border-bottom:1px solid var(--line); }
-  td { padding:7px 10px; border-bottom:1px solid #f0f1f5; white-space:nowrap; } td.num { text-align:right; font-variant-numeric:tabular-nums; }
-  .pill { border-radius:999px; padding:2px 9px; font-size:12px; font-weight:600; }
-  .RISIKO { background:var(--red); color:var(--redt); } .ORDER { background:var(--amber); color:var(--ambert); }
-  .OVERSTOCK { background:var(--blue); color:var(--bluet); } .AMAN { background:var(--green); color:var(--greent); }
-  .hint { color:var(--muted); font-size:13px; margin:0 0 8px; }
-  .hidden { display:none; }
-  code { background:#f1f2f8; padding:1px 5px; border-radius:4px; font-size:12.5px; }
+  :root {
+    --night:#2A1B33; --night2:#3A2647; --paper:#F4F2F6; --panel:#FFFFFF; --ink:#241A2E; --muted:#5B5166; --line:#DDD7E4;
+    --berry:#D6336C; --gold:#E8A33D; --jade:#3E9C7F; --powder:#6C8EBF;
+    --display:"Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
+    --body:"Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  * { box-sizing:border-box; }
+  html { scroll-behavior:smooth; }
+  body { margin:0; background:var(--paper); color:var(--ink); font:400 16px/1.55 var(--body); }
+  a { color:inherit; }
+  :focus-visible { outline:3px solid var(--berry); outline-offset:2px; border-radius:4px; }
+  .wrap { max-width:1160px; margin:0 auto; padding:0 24px; }
+  .hidden { display:none !important; }
+
+  .hero { background:var(--night); color:#F4F2F6; }
+  .bar { display:flex; justify-content:space-between; align-items:center; padding:22px 0; }
+  .brand { display:flex; align-items:center; gap:10px; font:700 18px var(--display); letter-spacing:-.01em; }
+  .bar a { color:#CFC5DA; text-decoration:none; font-size:15px; }
+  .bar a:hover { color:#fff; }
+  .hero-grid { display:grid; grid-template-columns:1.1fr .9fr; gap:40px; align-items:center; padding:28px 0 72px; }
+  h1 { font:700 clamp(34px,5.2vw,58px)/1.04 var(--display); letter-spacing:-.025em; margin:0 0 18px; max-width:15ch; }
+  .hero p { color:#D8CFE2; font-size:18px; max-width:46ch; margin:0 0 28px; }
+  .cta { display:inline-block; background:var(--gold); color:#2A1B33; font-weight:600; text-decoration:none; padding:13px 22px; border-radius:999px; }
+  .cta:hover { background:#F1B552; }
+  .shelf-art { width:100%; height:auto; display:block; }
+
+  .upload { margin-top:-36px; position:relative; }
+  .up-box { background:var(--panel); border:1px solid var(--line); border-radius:18px; padding:26px; display:grid; grid-template-columns:1.5fr 1fr; gap:28px; box-shadow:0 18px 40px -24px rgba(42,27,51,.45); }
+  h2 { font:700 26px/1.15 var(--display); letter-spacing:-.015em; margin:0 0 14px; }
+  h3 { font:700 17px/1.3 var(--display); margin:22px 0 8px; }
+  .drop { border:1.5px dashed #B9AECA; border-radius:14px; padding:26px 20px; text-align:center; color:var(--muted); cursor:pointer; background:#FBFAFC; transition:background .15s, border-color .15s; }
+  .drop:hover, .drop.over { background:#F2ECF7; border-color:var(--night2); }
+  .drop svg { display:block; margin:0 auto 8px; }
+  .drop b { color:var(--ink); font-weight:600; }
+  .files { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; min-height:4px; }
+  .file { display:inline-flex; align-items:center; gap:8px; background:#fff; border:1px solid var(--line); border-radius:10px; padding:5px 6px 5px 12px; font-size:14px; }
+  .file button { all:unset; cursor:pointer; width:22px; height:22px; text-align:center; border-radius:6px; color:var(--muted); line-height:22px; }
+  .file button:hover { background:#F1ECF5; color:var(--ink); }
+  .opts label { display:block; font-size:14px; color:var(--muted); margin-bottom:14px; }
+  .opts input { display:block; width:100%; margin-top:5px; border:1px solid var(--line); border-radius:10px; padding:10px 12px; font:inherit; color:var(--ink); background:#fff; }
+  .btns { display:flex; flex-wrap:wrap; gap:10px; margin-top:6px; }
+  button.primary { background:var(--night); color:#fff; border:0; border-radius:999px; padding:13px 22px; font:600 16px var(--body); cursor:pointer; }
+  button.primary:hover { background:var(--night2); }
+  button.ghost { background:transparent; color:var(--night); border:1.5px solid var(--night); border-radius:999px; padding:11.5px 20px; font:600 16px var(--body); cursor:pointer; }
+  button.ghost:hover { background:#EFE9F4; }
+  button:disabled { opacity:.5; cursor:progress; }
+  .err { background:#FCE7EE; color:#8E1B45; border-left:4px solid var(--berry); border-radius:8px; padding:11px 14px; margin-top:14px; white-space:pre-wrap; }
+  details { margin-top:18px; grid-column:1 / -1; border-top:1px solid var(--line); padding-top:14px; }
+  summary { cursor:pointer; font-weight:600; }
+  .hint { color:var(--muted); font-size:14px; margin:8px 0; }
+  .tw { overflow:auto; max-height:560px; border:1px solid var(--line); border-radius:12px; background:#fff; }
+  table { border-collapse:collapse; width:100%; font-size:14px; }
+  th { position:sticky; top:0; background:#F3EFF7; text-align:left; padding:10px 12px; white-space:nowrap; font-weight:600; cursor:pointer; user-select:none; border-bottom:1px solid var(--line); }
+  td { padding:9px 12px; border-bottom:1px solid #EFEBF3; white-space:nowrap; }
+  tbody tr:hover td { background:#FAF8FC; }
+  td.num { text-align:right; font-variant-numeric:tabular-nums; }
   .fmt td { white-space:normal; }
-  footer { color:var(--muted); font-size:13px; text-align:center; padding:20px; }
+  code { background:#F1ECF5; padding:1px 6px; border-radius:5px; font-size:13px; margin-right:3px; display:inline-block; }
+
+  .loading { padding:44px 0; text-align:center; color:var(--muted); }
+  .dots { display:flex; gap:8px; justify-content:center; margin-bottom:12px; }
+  .dots i { width:12px; height:26px; border-radius:5px 5px 2px 2px; animation:bob 1s ease-in-out infinite; transform-origin:bottom; }
+  .dots i:nth-child(1){ background:var(--berry); } .dots i:nth-child(2){ background:var(--gold); animation-delay:.15s; } .dots i:nth-child(3){ background:var(--jade); animation-delay:.3s; } .dots i:nth-child(4){ background:var(--powder); animation-delay:.45s; }
+  @keyframes bob { 0%,100% { transform:scaleY(.55); } 50% { transform:scaleY(1); } }
+
+  section.block { padding:56px 0 8px; }
+  .sum { display:grid; grid-template-columns:1.6fr 1fr; gap:48px; }
+  .headline { font:700 clamp(26px,3.4vw,38px)/1.12 var(--display); letter-spacing:-.02em; margin:0 0 12px; }
+  .lead { font-size:18px; color:#3C3247; margin:0 0 22px; max-width:62ch; }
+  ol.prios { list-style:none; padding:0; margin:0; border-top:1px solid var(--line); }
+  ol.prios li { display:grid; grid-template-columns:44px 1fr; gap:6px; padding:16px 0; border-bottom:1px solid var(--line); }
+  ol.prios .n { font:700 28px/1 var(--display); color:var(--berry); }
+  ol.prios strong { display:block; font-weight:600; font-size:17px; }
+  ol.prios p { margin:3px 0 0; color:var(--muted); font-size:15px; max-width:68ch; }
+  ul.watch { margin:0; padding-left:20px; color:var(--muted); font-size:15px; }
+  .foot { color:var(--muted); font-size:13px; margin-top:16px; }
+  .nums { border-left:1px solid var(--line); padding-left:32px; align-self:start; }
+  .stat { display:grid; grid-template-columns:18px 1fr; column-gap:12px; align-items:baseline; padding:7px 0; }
+  .stat .sw { width:14px; height:22px; border-radius:4px 4px 2px 2px; align-self:center; }
+  .stat .v { font:700 38px/1 var(--display); letter-spacing:-.02em; }
+  .stat .l { color:var(--muted); font-size:14px; grid-column:2; margin-top:2px; }
+  .nums hr { border:0; border-top:1px solid var(--line); margin:12px 0; }
+  .stat.plain { grid-template-columns:1fr; } .stat.plain .v { font-size:26px; } .stat.plain .l { grid-column:1; }
+  .warn { background:#FFF4DC; border-left:4px solid var(--gold); color:#6B4A0B; border-radius:8px; padding:8px 14px; margin-top:10px; font-size:14px; }
+  .src { color:var(--muted); font-size:13px; margin-top:12px; }
+
+  .legend { display:flex; flex-wrap:wrap; gap:18px; margin:0 0 20px; font-size:14px; color:var(--muted); }
+  .legend span { display:inline-flex; align-items:center; gap:7px; } .legend i { width:11px; height:18px; border-radius:4px 4px 2px 2px; display:inline-block; }
+  .shelves { display:grid; gap:20px; }
+  .shelf-row { display:grid; grid-template-columns:190px 1fr; gap:18px; align-items:end; }
+  .shelf-label b { display:block; font:600 15px/1.25 var(--display); }
+  .shelf-label small { color:var(--muted); font-size:13px; }
+  .shelf-scroll { overflow-x:auto; padding-bottom:2px; }
+  .shelf { display:flex; align-items:flex-end; gap:5px; border-bottom:5px solid #CFC6DA; min-height:36px; padding:0 4px; width:max-content; min-width:100%; }
+  .item { all:unset; box-sizing:border-box; cursor:pointer; width:14px; border-radius:5px 5px 2px 2px; transform-origin:bottom; animation:stock .38s cubic-bezier(.2,.8,.3,1) both; animation-delay:calc(var(--r) * 90ms + var(--i) * 9ms); }
+  .item.tall { height:34px; } .item.short { height:22px; }
+  .item:hover, .item:focus-visible { filter:brightness(.85); outline:2px solid var(--ink); outline-offset:1px; }
+  @keyframes stock { from { transform:scaleY(0); opacity:0; } to { transform:scaleY(1); opacity:1; } }
+  .s-RISIKO { background:var(--berry); } .s-ORDER { background:var(--gold); } .s-AMAN { background:var(--jade); } .s-OVERSTOCK { background:var(--powder); }
+
+  .detail-head { display:flex; justify-content:space-between; align-items:flex-end; gap:16px; flex-wrap:wrap; border-bottom:1px solid var(--line); margin-bottom:16px; }
+  .tabs { display:flex; flex-wrap:wrap; gap:6px 22px; }
+  .tabs button { all:unset; cursor:pointer; padding:10px 0 12px; color:var(--muted); font-weight:500; border-bottom:3px solid transparent; }
+  .tabs button:hover { color:var(--ink); }
+  .tabs button.on { color:var(--ink); font-weight:600; border-bottom-color:var(--berry); }
+  .tabs button:focus-visible { outline:3px solid var(--berry); outline-offset:2px; }
+  a.dl { background:var(--night); color:#fff; text-decoration:none; font-weight:600; padding:10px 18px; border-radius:999px; margin-bottom:10px; }
+  a.dl:hover { background:var(--night2); }
+  .filters { display:flex; flex-wrap:wrap; gap:10px; margin-bottom:12px; }
+  .filters select, .filters input { border:1px solid var(--line); border-radius:10px; padding:9px 12px; font:inherit; background:#fff; color:var(--ink); }
+  .mark { display:inline-flex; align-items:center; gap:8px; }
+  .mark i { width:9px; height:15px; border-radius:3px 3px 1px 1px; display:inline-block; }
+  footer { color:var(--muted); font-size:14px; padding:56px 0 40px; }
+
+  @media (max-width:900px) {
+    .hero-grid, .up-box, .sum { grid-template-columns:1fr; }
+    .hero-grid { padding-bottom:56px; } .shelf-art { max-width:420px; }
+    .nums { border-left:0; border-top:1px solid var(--line); padding:20px 0 0; }
+    .shelf-row { grid-template-columns:1fr; gap:6px; }
+  }
+  @media (prefers-reduced-motion:reduce) { .item, .dots i { animation:none; } html { scroll-behavior:auto; } }
 </style>
 </head>
 <body>
-<header><div class="in">
-  <h1>📦 Beauty Stock AI</h1>
-  <p>Upload data penjualan, refund, dan stok toko beauty. Dapatkan rencana stok per toko per SKU, tren hari, dan rencana rak vs gudang.</p>
-</div></header>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="bar">
+      <div class="brand">
+        <svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true"><rect x="2" y="9" width="5" height="12" rx="2" fill="#D6336C"/><rect x="10" y="4" width="5" height="17" rx="2" fill="#E8A33D"/><rect x="18" y="12" width="5" height="9" rx="2" fill="#3E9C7F"/><rect x="1" y="22" width="24" height="2.5" rx="1.2" fill="#F4F2F6"/></svg>
+        Beauty Stock Forecast
+      </div>
+      <a href="#unggah">Unggah data</a>
+    </div>
+    <div class="hero-grid">
+      <div>
+        <h1>Stok yang pas untuk setiap toko, setiap SKU</h1>
+        <p>Unggah data order dan planogram. Hasilnya: apa yang harus dipesan, apa yang hampir habis, dan seberapa penuh rak harus diisi untuk hari Minggu.</p>
+        <a class="cta" href="#unggah">Mulai dari data Anda</a>
+      </div>
+      <div id="heroShelf"></div>
+    </div>
+  </div>
+</header>
 
 <main>
-  <section class="card">
-    <h2>1. Upload data (Excel atau CSV)</h2>
-    <div id="drop" class="drop" tabindex="0">
-      <b>Tarik file Excel (.xlsx) atau CSV ke sini</b> atau klik untuk memilih.<br>
-      <span>Cukup 2 file Excel: <b>Data Order</b> (penjualan, refund) dan <b>Data Planogram &amp; Kapasitas</b> (rak, stok, SKU, toko). Jenis tiap sheet dikenali otomatis dari kolomnya.</span>
-      <input id="file" type="file" accept=".xlsx,.xlsm,.csv,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" multiple class="hidden">
+  <section class="upload wrap" id="unggah">
+    <div class="up-box">
+      <div>
+        <h2>Unggah data</h2>
+        <div id="drop" class="drop" tabindex="0" role="button" aria-label="Pilih file Excel atau CSV">
+          <svg width="34" height="34" viewBox="0 0 34 34" fill="none" aria-hidden="true"><rect x="5" y="22" width="24" height="3" rx="1.5" fill="#B9AECA"/><path d="M17 5v14M11 11l6-6 6 6" stroke="#3A2647" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <b>Tarik file Excel atau CSV ke sini</b>, atau klik untuk memilih.<br>
+          Dua file cukup: Data Order, dan Data Planogram &amp; Kapasitas.
+          <input id="file" type="file" accept=".xlsx,.xlsm,.csv,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" multiple class="hidden">
+        </div>
+        <div id="chips" class="files"></div>
+        <div id="error" class="err hidden" role="alert"></div>
+      </div>
+      <div class="opts">
+        <label>Siklus order (hari)<input id="review" type="number" value="7" min="1" max="60"></label>
+        <label>Batas overstock (hari stok)<input id="over" type="number" value="45" min="7" max="365"></label>
+        <div class="btns">
+          <button id="go" class="primary">Hitung kebutuhan stok</button>
+          <button id="sample" class="ghost" type="button">Coba data contoh</button>
+        </div>
+      </div>
+      <details>
+        <summary>Format kolom yang dibutuhkan</summary>
+        <p class="hint">Wajib: penjualan, stok, dan master SKU. Lainnya opsional, tapi makin lengkap makin akurat. Yang dibaca adalah nama kolom, jadi nama file dan nama sheet bebas. Sheet lain (misalnya Petunjuk) diabaikan.</p>
+        <p id="samples" class="hint"></p>
+        <div class="tw"><table class="fmt"><thead><tr><th>Data</th><th>Wajib?</th><th>Kolom</th><th>Ada di contoh</th></tr></thead><tbody id="fmt"></tbody></table></div>
+      </details>
     </div>
-    <div id="chips" class="chips"></div>
-
-    <div class="row">
-      <label>Siklus order (hari) <input id="review" type="number" value="7" min="1" max="60"></label>
-      <label>Batas overstock (hari stok) <input id="over" type="number" value="45" min="7" max="365"></label>
-      <label><input id="ai" type="checkbox" checked> Ringkasan AI (Gemini)</label>
-    </div>
-    <div class="row">
-      <button id="go">Analisis</button>
-      <button id="sample" class="ghost" type="button">Coba dengan data contoh</button>
-    </div>
-    <div id="error" class="err hidden"></div>
-
-    <details>
-      <summary>Format file yang dibutuhkan</summary>
-      <p class="hint">Wajib: penjualan, stok, dan master SKU. Lainnya opsional, tapi makin lengkap makin akurat. Nama file dan nama sheet bebas, yang dibaca adalah nama kolomnya. Sheet lain (misalnya Petunjuk) diabaikan.</p>
-      <p id="samples" class="hint"></p>
-      <div class="tw"><table class="fmt"><thead><tr><th>Data</th><th>Wajib?</th><th>Kolom</th><th>Ada di contoh</th></tr></thead><tbody id="fmt"></tbody></table></div>
-    </details>
   </section>
 
-  <div id="loading" class="card hidden">Menganalisis… ini bisa makan beberapa detik (lebih lama jika AI aktif).</div>
+  <div id="loading" class="loading hidden wrap" aria-live="polite">
+    <div class="dots"><i></i><i></i><i></i><i></i></div>
+    Menghitung kebutuhan stok…
+  </div>
 
   <div id="results" class="hidden">
-    <section class="card ai" id="aiCard"></section>
-    <div id="warns"></div>
-    <div class="kpis" id="kpis"></div>
+    <section class="block wrap" id="ringkasan">
+      <div class="sum">
+        <div id="sumMain"></div>
+        <aside class="nums" id="nums" aria-label="Angka utama"></aside>
+      </div>
+      <div id="warns"></div>
+    </section>
 
-    <section class="card">
-      <div class="row" style="margin:0 0 10px;justify-content:space-between">
-        <div class="tabs" id="tabs" style="border:0;margin:0"></div>
-        <a id="dl" class="btn" href="#">⬇ Unduh Excel</a>
+    <section class="block wrap" id="peta">
+      <h2>Peta rak</h2>
+      <p class="hint" style="margin-top:-6px">Satu rak per toko, satu botol per SKU. Botol tinggi untuk skincare, pendek untuk makeup. Klik untuk melihat rinciannya.</p>
+      <div class="legend" id="legend"></div>
+      <div class="shelves" id="shelves"></div>
+    </section>
+
+    <section class="block wrap" id="rincian">
+      <div class="detail-head">
+        <div class="tabs" id="tabs" role="tablist"></div>
+        <a id="dl" class="dl" href="#">Unduh Excel</a>
       </div>
       <div id="pane"></div>
     </section>
   </div>
 </main>
-<footer>Hasil adalah rekomendasi berdasarkan data yang diunggah. Periksa kembali sebelum membuat order.</footer>
+<footer class="wrap">Hasil berupa rekomendasi dari data yang diunggah. Periksa kembali sebelum membuat order.</footer>
 
 <script>
 const $ = id => document.getElementById(id);
 const fmt = n => (n === null || n === undefined || n === "") ? "" : Number(n).toLocaleString("id-ID", {maximumFractionDigits: 1});
 const rp = n => "Rp " + Number(n).toLocaleString("id-ID");
 const rpShort = n => n >= 1e9 ? "Rp " + (n / 1e9).toLocaleString("id-ID", {maximumFractionDigits: 2}) + " M" : n >= 1e6 ? "Rp " + (n / 1e6).toLocaleString("id-ID", {maximumFractionDigits: 1}) + " jt" : rp(n);
-let files = [], DATA = null, tab = "ringkasan";
+const COLOR = {"RISIKO HABIS": "var(--berry)", "ORDER SEKARANG": "var(--gold)", "AMAN": "var(--jade)", "OVERSTOCK": "var(--powder)"};
+const KEY = {"RISIKO HABIS": "RISIKO", "ORDER SEKARANG": "ORDER", "AMAN": "AMAN", "OVERSTOCK": "OVERSTOCK"};
+const LABEL = {"RISIKO HABIS": "Berisiko habis", "ORDER SEKARANG": "Order sekarang", "AMAN": "Aman", "OVERSTOCK": "Overstock"};
+let files = [], DATA = null, tab = "toko", preset = null;
 
 function el(tag, props = {}, ...kids) {
   const e = document.createElement(tag);
   for (const [k, v] of Object.entries(props)) { if (k === "class") e.className = v; else if (k === "text") e.textContent = v; else e.setAttribute(k, v); }
-  for (const k of kids) if (k !== null && k !== undefined) e.append(k.nodeType ? k : document.createTextNode(k));
+  for (const k of kids) if (k !== null && k !== undefined && k !== false) e.append(k.nodeType ? k : document.createTextNode(k));
   return e;
 }
 
-// ---------------------------------------------------------------- upload
+(function heroShelf() {
+  const NS = "http://www.w3.org/2000/svg", C = {r: "#D6336C", g: "#E8A33D", b: "#6C8EBF", j: "#3E9C7F"};
+  const svg = document.createElementNS(NS, "svg");
+  svg.setAttribute("viewBox", "0 0 460 340"); svg.setAttribute("class", "shelf-art"); svg.setAttribute("role", "img");
+  svg.setAttribute("aria-label", "Rak toko berisi botol, lipstik, dan compact, dengan beberapa slot kosong");
+  const add = (tag, a, parent = svg) => { const n = document.createElementNS(NS, tag); for (const k in a) n.setAttribute(k, a[k]); parent.append(n); return n; };
+  const shapes = {
+    bottle: (g, x, y, f) => { add("rect", {x: x + 6, y: y - 62, width: 28, height: 62, rx: 7, ...f}, g); add("rect", {x: x + 12, y: y - 76, width: 16, height: 16, rx: 3, ...f}, g); },
+    tube:   (g, x, y, f) => { add("rect", {x: x + 8, y: y - 58, width: 24, height: 58, rx: 5, ...f}, g); add("rect", {x: x + 14, y: y - 70, width: 12, height: 14, rx: 3, ...f}, g); },
+    stick:  (g, x, y, f) => { add("rect", {x: x + 9, y: y - 34, width: 22, height: 34, rx: 3, ...f}, g); add("rect", {x: x + 13, y: y - 58, width: 14, height: 26, rx: 7, ...f}, g); },
+    compact:(g, x, y, f) => { add("rect", {x: x + 1, y: y - 24, width: 38, height: 24, rx: 12, ...f}, g); add("rect", {x: x + 7, y: y - 31, width: 26, height: 8, rx: 4, ...f}, g); },
+    jar:    (g, x, y, f) => { add("rect", {x: x + 2, y: y - 28, width: 36, height: 28, rx: 7, ...f}, g); add("rect", {x: x + 3, y: y - 40, width: 34, height: 12, rx: 4, ...f}, g); },
+  };
+  const rows = [
+    {y: 112, items: "bottle:j bottle:j tube:g bottle:r ~bottle bottle:b tube:j".split(" ")},
+    {y: 226, items: "stick:r compact:g stick:j ~stick compact:b stick:j stick:g".split(" ")},
+    {y: 322, items: "jar:j jar:b ~jar jar:g bottle:j jar:r".split(" ")},
+  ];
+  rows.forEach(r => {
+    add("rect", {x: 14, y: r.y, width: 432, height: 7, rx: 3.5, fill: "#4B3659"});
+    r.items.forEach((it, i) => {
+      const ghost = it[0] === "~", [t, c] = it.replace("~", "").split(":"), x = 30 + i * 58;
+      const g = add("g", {});
+      shapes[t](g, x, r.y, ghost ? {fill: "none", stroke: "#8F7FA0", "stroke-width": 1.6, "stroke-dasharray": "4 4"} : {fill: C[c]});
+    });
+  });
+  $("heroShelf").append(svg);
+})();
+
 const drop = $("drop"), input = $("file");
 drop.onclick = () => input.click();
-drop.onkeydown = e => { if (e.key === "Enter") input.click(); };
+drop.onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); input.click(); } };
 ["dragenter", "dragover"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add("over"); }));
 ["dragleave", "drop"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove("over"); }));
 drop.addEventListener("drop", e => addFiles(e.dataTransfer.files));
 input.onchange = () => { addFiles(input.files); input.value = ""; };
-function addFiles(list) {
-  for (const f of list) if (!files.some(x => x.name === f.name && x.size === f.size)) files.push(f);
-  renderChips();
-}
+function addFiles(list) { for (const f of list) if (!files.some(x => x.name === f.name && x.size === f.size)) files.push(f); renderChips(); }
 function renderChips() {
-  $("chips").replaceChildren(...files.map((f, i) => {
-    const c = el("span", {class: "chip"}, f.name + " ");
-    const x = el("a", {href: "#", text: "✕"}); x.onclick = ev => { ev.preventDefault(); files.splice(i, 1); renderChips(); };
-    c.append(x); return c;
-  }));
+  $("chips").replaceChildren(...files.map((f, i) => el("span", {class: "file"}, f.name,
+    (() => { const b = el("button", {type: "button", "aria-label": "Hapus " + f.name, text: "✕"}); b.onclick = () => { files.splice(i, 1); renderChips(); }; return b; })())));
 }
 function showError(msg) { const e = $("error"); e.textContent = msg || ""; e.classList.toggle("hidden", !msg); }
 
@@ -154,18 +284,18 @@ async function run(url, body) {
     const res = await fetch(url, {method: "POST", body});
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(typeof data.detail === "string" ? data.detail : "Permintaan tidak valid. Periksa file dan pengaturan.");
-    DATA = data; tab = "ringkasan"; render();
-  } catch (e) { showError(e.message); }
+    DATA = data; tab = "toko"; preset = null; render();
+    $("ringkasan").scrollIntoView({behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start"});
+  } catch (e) { showError(e.message); $("unggah").scrollIntoView({block: "start"}); }
   finally { $("loading").classList.add("hidden"); $("go").disabled = $("sample").disabled = false; }
 }
-function opts(fd) { fd.append("review_days", $("review").value); fd.append("overstock_days", $("over").value); fd.append("use_ai", $("ai").checked); return fd; }
+function opts(fd) { fd.append("review_days", $("review").value); fd.append("overstock_days", $("over").value); fd.append("smart_summary", "true"); return fd; }
 $("go").onclick = () => {
-  if (!files.length) return showError("Pilih minimal file penjualan, stok, dan master SKU.");
+  if (!files.length) return showError("Pilih file dulu: minimal data penjualan, stok, dan master SKU.");
   const fd = new FormData(); files.forEach(f => fd.append("files", f)); run("/api/analyze", opts(fd));
 };
 $("sample").onclick = () => run("/api/analyze/sample", opts(new FormData()));
 
-// ---------------------------------------------------------------- tables
 function table(cols, rows, {sortable = true, cell} = {}) {
   let sortKey = null, asc = true;
   const wrap = el("div", {class: "tw"});
@@ -188,42 +318,64 @@ function table(cols, rows, {sortable = true, cell} = {}) {
   };
   draw(); return wrap;
 }
-const pillClass = s => ({"RISIKO HABIS": "RISIKO", "ORDER SEKARANG": "ORDER", "OVERSTOCK": "OVERSTOCK", "AMAN": "AMAN"})[s];
-const statusCell = (td, c, v) => { if (c.key !== "status") return false; td.append(el("span", {class: "pill " + pillClass(v), text: v})); return true; };
+const statusCell = (td, c, v) => { if (c.key !== "status") return false; td.append(el("span", {class: "mark"}, el("i", {style: "background:" + COLOR[v]}), LABEL[v])); return true; };
 
-// ---------------------------------------------------------------- render
 function render() {
-  const d = DATA, k = d.kpi, st = k.status;
-  // AI card
-  const ins = d.insight, ai = $("aiCard"); ai.replaceChildren();
-  ai.append(el("h2", {}, "Ringkasan ", el("span", {class: "badge", text: ins.source === "gemini" ? "✨ dibuat AI (Gemini)" : "berbasis aturan"})));
-  ai.append(el("div", {class: "headline", text: ins.headline}), el("div", {text: ins.summary}));
-  ins.priorities.forEach((p, i) => ai.append(el("div", {class: "prio"}, el("div", {class: "n", text: i + 1}), el("div", {}, el("div", {class: "t", text: p.title}), el("div", {class: "d", text: p.detail})))));
-  if (ins.watchouts.length) { ai.append(el("h3", {text: "Perlu diwaspadai"}), el("ul", {class: "w"}, ...ins.watchouts.map(w => el("li", {text: w})))); }
-  if (ins.note) ai.append(el("div", {class: "note", text: ins.note}));
-  if (ins.source === "gemini") ai.append(el("div", {class: "note", text: "Teks dibuat AI dari angka hasil analisis. Cek kembali sebelum dipakai untuk keputusan besar."}));
+  const d = DATA, k = d.kpi, st = k.status, ins = d.insight;
+  const main = $("sumMain"); main.replaceChildren(
+    el("h2", {class: "headline", text: ins.headline}), el("p", {class: "lead", text: ins.summary}),
+    el("ol", {class: "prios"}, ...ins.priorities.map((p, i) => el("li", {}, el("span", {class: "n", text: i + 1}), el("div", {}, el("strong", {text: p.title}), el("p", {text: p.detail}))))));
+  if (ins.watchouts.length) main.append(el("h3", {text: "Perlu diwaspadai"}), el("ul", {class: "watch"}, ...ins.watchouts.map(w => el("li", {text: w}))));
+  main.append(el("p", {class: "foot", text: "Ringkasan disusun otomatis dari angka di tabel dan Excel. Angka itulah acuan utamanya."}));
+  if (ins.note) main.append(el("p", {class: "foot", text: ins.note}));
+
+  const stat = status => el("div", {class: "stat"}, el("span", {class: "sw", style: "background:" + COLOR[status]}), el("div", {class: "v", text: fmt(st[status] || 0)}), el("div", {class: "l", text: LABEL[status]}));
+  const plain = (v, l) => el("div", {class: "stat plain"}, el("div", {class: "v", text: v}), el("div", {class: "l", text: l}));
+  $("nums").replaceChildren(...["RISIKO HABIS", "ORDER SEKARANG", "OVERSTOCK", "AMAN"].map(stat), el("hr"),
+    plain(fmt(k.order_units) + " unit", "total order, senilai " + rpShort(k.order_value) + " (HPP)"),
+    plain(fmt(k.display_gap_skus) + " SKU", "tidak bisa mengisi display Minggu"));
 
   const names = {sales: "Penjualan", refunds: "Refund", inventory: "Stok", planogram: "Planogram", skus: "SKU", stores: "Toko"};
-  $("warns").replaceChildren(el("div", {class: "note", text: "Data dibaca dari: " + Object.entries(d.detected_files).map(([k, v]) => names[k] + " (" + v + ")").join(", ")}),
-    ...(d.meta.warnings || []).map(w => el("div", {class: "warn", text: "⚠ " + w})));
-  const kp = (cls, v, l) => el("div", {class: "kpi " + cls}, el("div", {class: "v", text: v}), el("div", {class: "l", text: l}));
-  $("kpis").replaceChildren(
-    kp("r", fmt(st["RISIKO HABIS"] || 0), "SKU berisiko habis"), kp("a", fmt(st["ORDER SEKARANG"] || 0), "Order sekarang"),
-    kp("b", fmt(st["OVERSTOCK"] || 0), "Overstock"), kp("g", fmt(st["AMAN"] || 0), "Aman"),
-    kp("", fmt(k.order_units), "Total order (unit)"), kp("", rpShort(k.order_value), "Nilai order (HPP)"),
-    kp("", fmt(k.display_gap_skus), "SKU display Minggu kurang"));
-  $("dl").href = "/api/report/" + d.job_id + ".xlsx";
+  $("warns").replaceChildren(el("div", {class: "src", text: "Data dibaca dari: " + Object.entries(d.detected_files).map(([x, v]) => names[x] + " (" + v + ")").join(", ")}),
+    ...(d.meta.warnings || []).map(w => el("div", {class: "warn", text: w})));
 
-  const tabs = [["ringkasan", "Per toko"], ["rekom", "Rekomendasi per SKU"], ["minggu", "Rak vs gudang (Minggu)"], ["tren", "Tren hari"], ["refund", "Refund"], ["asumsi", "Asumsi"]];
-  $("tabs").replaceChildren(...tabs.map(([id, label]) => { const b = el("button", {class: id === tab ? "on" : "", text: label, type: "button"}); b.onclick = () => { tab = id; render(); }; return b; }));
+  shelfMap();
+  $("dl").href = "/api/report/" + d.job_id + ".xlsx";
+  renderTabs();
   $("results").classList.remove("hidden");
-  const pane = $("pane"); pane.replaceChildren(); ({ringkasan: paneStores, rekom: paneRec, minggu: paneSunday, tren: paneTrend, refund: paneRefund, asumsi: paneAssump})[tab](pane);
+}
+
+function shelfMap() {
+  $("legend").replaceChildren(...Object.keys(COLOR).map(s => el("span", {}, el("i", {style: "background:" + COLOR[s]}), LABEL[s])));
+  const byStore = new Map();
+  DATA.recommendations.forEach(r => { if (!byStore.has(r.store_name)) byStore.set(r.store_name, []); byStore.get(r.store_name).push(r); });
+  const sum = Object.fromEntries(DATA.summary.map(s => [s.store_name, s]));
+  const order = DATA.summary.map(s => s.store_name);
+  $("shelves").replaceChildren(...order.map((name, ri) => {
+    const items = byStore.get(name).sort((a, b) => a.category.localeCompare(b.category) || a.sku.localeCompare(b.sku));
+    const s = sum[name];
+    const shelf = el("div", {class: "shelf"}, ...items.map((r, i) => {
+      const b = el("button", {class: "item s-" + KEY[r.status] + (r.category.toLowerCase().startsWith("skin") ? " tall" : " short"), type: "button",
+        title: r.name + " · " + LABEL[r.status] + (r.order_qty ? " · order " + fmt(r.order_qty) + " unit" : ""), "aria-label": r.name + ", " + LABEL[r.status], style: `--i:${i};--r:${ri}`});
+      b.onclick = () => { tab = "rekom"; preset = {store: name, q: r.name}; renderTabs(); $("rincian").scrollIntoView({behavior: "smooth", block: "start"}); };
+      return b;
+    }));
+    return el("div", {class: "shelf-row"},
+      el("div", {class: "shelf-label"}, el("b", {text: name}), el("small", {text: s.risiko_habis + " berisiko habis · " + s.order_sekarang + " order · " + s.overstock + " overstock"})),
+      el("div", {class: "shelf-scroll"}, shelf));
+  }));
+}
+
+function renderTabs() {
+  const tabs = [["toko", "Per toko"], ["rekom", "Rekomendasi per SKU"], ["minggu", "Rak dan gudang hari Minggu"], ["tren", "Tren hari"], ["refund", "Refund"], ["asumsi", "Asumsi"]];
+  $("tabs").replaceChildren(...tabs.map(([id, label]) => { const b = el("button", {class: id === tab ? "on" : "", text: label, type: "button", role: "tab", "aria-selected": id === tab}); b.onclick = () => { tab = id; preset = null; renderTabs(); }; return b; }));
+  const pane = $("pane"); pane.replaceChildren(); ({toko: paneStores, rekom: paneRec, minggu: paneSunday, tren: paneTrend, refund: paneRefund, asumsi: paneAssump})[tab](pane);
 }
 
 function paneStores(p) {
   p.append(el("p", {class: "hint", text: "Klik judul kolom untuk mengurutkan."}));
   p.append(table([
-    {key: "store_name", label: "Toko"}, {key: "risiko_habis", label: "Risiko habis"}, {key: "order_sekarang", label: "Order sekarang"},
+    {key: "store_name", label: "Toko"}, {key: "risiko_habis", label: "Berisiko habis"}, {key: "order_sekarang", label: "Order sekarang"},
     {key: "overstock", label: "Overstock"}, {key: "aman", label: "Aman"}, {key: "total_order_unit", label: "Order (unit)"},
     {key: "total_order_nilai", label: "Nilai order (Rp)"}, {key: "display_minggu_kurang", label: "SKU display Minggu kurang"},
     {key: "stok_rak", label: "Stok rak"}, {key: "stok_gudang", label: "Stok gudang"}], DATA.summary));
@@ -232,62 +384,63 @@ function paneStores(p) {
 function paneRec(p) {
   const rows = DATA.recommendations;
   const stores = [...new Set(rows.map(r => r.store_name))], cats = [...new Set(rows.map(r => r.category))];
-  const fStore = el("select", {}, el("option", {value: "", text: "Semua toko"}), ...stores.map(s => el("option", {value: s, text: s})));
-  const fStatus = el("select", {}, el("option", {value: "", text: "Semua status"}), ...["RISIKO HABIS", "ORDER SEKARANG", "AMAN", "OVERSTOCK"].map(s => el("option", {value: s, text: s})));
-  const fCat = el("select", {}, el("option", {value: "", text: "Semua kategori"}), ...cats.map(s => el("option", {value: s, text: s})));
-  const q = el("input", {type: "search", placeholder: "Cari produk / SKU"});
+  const fStore = el("select", {"aria-label": "Toko"}, el("option", {value: "", text: "Semua toko"}), ...stores.map(s => el("option", {value: s, text: s})));
+  const fStatus = el("select", {"aria-label": "Status"}, el("option", {value: "", text: "Semua status"}), ...Object.keys(LABEL).map(s => el("option", {value: s, text: LABEL[s]})));
+  const fCat = el("select", {"aria-label": "Kategori"}, el("option", {value: "", text: "Semua kategori"}), ...cats.map(s => el("option", {value: s, text: s})));
+  const q = el("input", {type: "search", placeholder: "Cari produk atau SKU", "aria-label": "Cari produk atau SKU"});
+  if (preset) { fStore.value = preset.store; q.value = preset.q; preset = null; }
   const host = el("div");
   const draw = () => {
     const t = q.value.toLowerCase();
     const f = rows.filter(r => (!fStore.value || r.store_name === fStore.value) && (!fStatus.value || r.status === fStatus.value) &&
       (!fCat.value || r.category === fCat.value) && (!t || r.name.toLowerCase().includes(t) || r.sku.toLowerCase().includes(t)));
-    host.replaceChildren(el("p", {class: "hint", text: f.length + " dari " + rows.length + " baris. Order = target stok − stok total, dibulatkan ke kelipatan pack."}),
+    host.replaceChildren(el("p", {class: "hint", text: f.length + " dari " + rows.length + " baris. Order = target stok dikurangi stok total, dibulatkan ke kelipatan pack."}),
       table([
         {key: "store_name", label: "Toko"}, {key: "name", label: "Produk"}, {key: "status", label: "Status"}, {key: "on_hand", label: "Stok total"},
         {key: "shelf_stock", label: "Rak"}, {key: "backroom_stock", label: "Gudang"}, {key: "avg_daily_forecast", label: "Demand/hari"},
-        {key: "fc_lead_time", label: "Butuh selama lead time"}, {key: "lead_time_days", label: "Lead time"}, {key: "safety_stock", label: "Safety stock"},
+        {key: "fc_lead_time", label: "Butuh selama lead time"}, {key: "lead_time_days", label: "Lead time (hari)"}, {key: "safety_stock", label: "Safety stock"},
         {key: "order_up_to", label: "Target stok"}, {key: "cover_days", label: "Hari stok"}, {key: "order_qty", label: "Qty order"},
         {key: "order_value", label: "Nilai order (Rp)"}, {key: "abc", label: "ABC"}], f, {cell: statusCell}));
   };
   [fStore, fStatus, fCat].forEach(x => x.onchange = draw); q.oninput = draw;
-  p.append(el("div", {class: "row", style: "margin:0 0 10px"}, fStore, fStatus, fCat, q), host); draw();
+  p.append(el("div", {class: "filters"}, fStore, fStatus, fCat, q), host); draw();
 }
 
 function paneSunday(p) {
   const rows = DATA.recommendations.filter(r => r.display_gap > 0 || r.move_backroom_to_shelf > 0 || r.sunday_restock_runs > 0)
     .sort((a, b) => b.display_gap - a.display_gap || b.sunday_restock_runs - a.sunday_restock_runs || b.move_backroom_to_shelf - a.move_backroom_to_shelf)
-    .map(r => ({...r, action: r.display_gap > 0 ? "Display tidak bisa penuh: transfer/order darurat " + r.display_gap + " unit"
+    .map(r => ({...r, action: r.display_gap > 0 ? "Display tidak bisa penuh: transfer atau order darurat " + r.display_gap + " unit"
       : r.move_backroom_to_shelf > 0 ? "Pindahkan " + r.move_backroom_to_shelf + " unit dari gudang ke rak sebelum Minggu"
       : "Siapkan restock rak " + r.sunday_restock_runs + "x saat jam ramai"}));
-  p.append(el("p", {class: "hint", text: "Rencana untuk Minggu " + DATA.meta.sunday + ". Target display dari planogram (atau perkiraan jika planogram tidak diunggah). " + rows.length + " SKU butuh tindakan."}));
+  p.append(el("p", {class: "hint", text: "Rencana untuk Minggu " + DATA.meta.sunday + ". Target display diambil dari planogram, atau diperkirakan dari penjualan kalau planogram tidak diunggah. " + rows.length + " SKU butuh tindakan."}));
   p.append(table([
     {key: "store_name", label: "Toko"}, {key: "name", label: "Produk"}, {key: "shelf_stock", label: "Rak"}, {key: "backroom_stock", label: "Gudang"},
     {key: "sunday_target", label: "Target display"}, {key: "sunday_forecast", label: "Perkiraan terjual Minggu"}, {key: "stock_at_sunday_open", label: "Stok saat buka Minggu"},
-    {key: "display_gap", label: "Display kurang"}, {key: "move_backroom_to_shelf", label: "Pindah gudang→rak"}, {key: "sunday_restock_runs", label: "Restock rak (kali)"},
+    {key: "display_gap", label: "Display kurang"}, {key: "move_backroom_to_shelf", label: "Pindah gudang ke rak"}, {key: "sunday_restock_runs", label: "Restock rak (kali)"},
     {key: "action", label: "Tindakan"}], rows));
 }
 
-function heat(v) { const a = Math.min(1, Math.abs(v - 1) / 0.6); return v >= 1 ? `rgba(80,120,230,${a * .75})` : `rgba(240,90,90,${a * .7})`; }
+function heat(v) { const a = Math.min(1, Math.abs(v - 1) / 0.6); return v >= 1 ? `rgba(108,142,191,${a * .8})` : `rgba(214,51,108,${a * .62})`; }
 function paneTrend(p) {
-  p.append(el("p", {class: "hint", text: "Indeks 1,00 = rata-rata harian. 1,50 berarti 50% di atas rata-rata. Hari lonjakan kampanye dikeluarkan" + (DATA.meta.event_days.length ? " (" + DATA.meta.event_days.join(", ") + ")." : ".")}));
+  p.append(el("p", {class: "hint", text: "Indeks 1,00 sama dengan rata-rata harian. 1,50 berarti 50% di atas rata-rata. Hari lonjakan kampanye dikeluarkan" + (DATA.meta.event_days.length ? " (" + DATA.meta.event_days.join(", ") + ")." : ".")}));
   const days = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"];
   p.append(table([{key: "store_name", label: "Toko"}, {key: "category", label: "Kategori"}, ...days.map(x => ({key: x, label: x}))], DATA.dow_pivot, {
-    sortable: false, cell: (td, c, v) => { if (!days.includes(c.key)) return false; td.textContent = Number(v).toFixed(2); td.className = "num"; td.style.background = heat(v); return true; }}));
+    sortable: false, cell: (td, c, v) => { if (!days.includes(c.key)) return false; td.textContent = Number(v).toLocaleString("id-ID", {minimumFractionDigits: 2, maximumFractionDigits: 2}); td.className = "num"; td.style.background = heat(v); return true; }}));
   p.append(el("h3", {text: "SKU dengan lonjakan Minggu tertinggi (semua toko)"}));
   p.append(table([{key: "name", label: "Produk"}, {key: "category", label: "Kategori"}, {key: "hari_puncak", label: "Hari puncak"}, {key: "indeks_minggu", label: "Indeks Minggu", dec: 2},
     {key: "indeks_senin", label: "Indeks Senin", dec: 2}, {key: "display_minggu_diperbesar", label: "Display Minggu diperbesar"}], DATA.sku_peak));
   if (DATA.display_effect.length) {
     p.append(el("h3", {text: "Apakah display Minggu yang diperbesar menaikkan penjualan Minggu?"}));
     p.append(table([{key: "category", label: "Kategori"}, {key: "Display normal", label: "Display normal", dec: 2}, {key: "Display Minggu diperbesar", label: "Display Minggu diperbesar", dec: 2}, {key: "selisih", label: "Selisih", dec: 2}], DATA.display_effect, {sortable: false}));
-    p.append(el("p", {class: "hint", text: "Ini perbandingan observasi. SKU unggulan biasanya dipilih untuk display karena memang laris, jadi selisih belum tentu efek display saja."}));
+    p.append(el("p", {class: "hint", text: "Ini perbandingan observasi. SKU unggulan biasanya dipilih untuk display karena memang laris, jadi selisihnya belum tentu efek display saja."}));
   }
 }
 
 function paneRefund(p) {
-  if (!DATA.ref_reason.length) { p.append(el("p", {class: "hint", text: "Tidak ada data refund yang diunggah."})); return; }
+  if (!DATA.ref_reason.length) { p.append(el("p", {class: "hint", text: "Belum ada data refund. Unggah sheet Refund di Data Order untuk melihat analisisnya."})); return; }
   p.append(el("h3", {text: "Refund per kategori dan alasan"}));
   p.append(table([{key: "category", label: "Kategori"}, {key: "reason", label: "Alasan"}, {key: "units_refunded", label: "Unit refund"}, {key: "units_resellable", label: "Bisa dijual lagi"}, {key: "pct_dari_terjual", label: "% dari terjual", dec: 1}],
-    DATA.ref_reason.map(r => ({...r, pct_dari_terjual: r.pct_dari_terjual === null ? null : Math.round(r.pct_dari_terjual * 1000) / 10})), {}));
+    DATA.ref_reason.map(r => ({...r, pct_dari_terjual: r.pct_dari_terjual === null ? null : Math.round(r.pct_dari_terjual * 1000) / 10}))));
   p.append(el("h3", {text: "Per toko"}));
   p.append(table([{key: "store_name", label: "Toko"}, {key: "units_sold", label: "Unit terjual"}, {key: "units_refunded", label: "Unit refund"}, {key: "rate", label: "Refund rate (%)", dec: 1}],
     DATA.ref_store.map(r => ({...r, rate: Math.round(r.refund_rate * 1000) / 10}))));
@@ -300,12 +453,11 @@ function paneAssump(p) {
   p.append(table([{key: "Parameter", label: "Parameter"}, {key: "Nilai", label: "Nilai"}, {key: "Catatan", label: "Catatan"}], DATA.assumptions, {sortable: false, cell: td => { td.style.whiteSpace = "normal"; return false; }}));
 }
 
-// ---------------------------------------------------------------- format help
 fetch("/api/schema").then(r => r.json()).then(sc => {
   $("samples").replaceChildren("Unduh contoh: ", ...sc.sample_files.flatMap((n, i) => [i ? " · " : "", el("a", {href: "/sample/" + n, text: n})]));
   $("fmt").replaceChildren(...sc.files.map(f => el("tr", {}, el("td", {text: f.label}), el("td", {text: f.required ? "Wajib" : "Opsional"}),
-    el("td", {}, ...f.columns.map(c => el("code", {text: c})), f.kind === "refunds" ? el("span", {class: "hint", text: "  (opsional: reason, units_resellable)"}) : null,
-      f.kind === "skus" ? el("span", {class: "hint", text: "  (opsional: subcategory, hero_sunday)"}) : null),
+    el("td", {}, ...f.columns.map(c => el("code", {text: c})), f.kind === "refunds" ? el("span", {class: "hint", text: " (opsional: reason, units_resellable)"}) : null,
+      f.kind === "skus" ? el("span", {class: "hint", text: " (opsional: subcategory, hero_sunday)"}) : null),
     el("td", {text: f.sample}))));
 }).catch(() => {});
 </script>

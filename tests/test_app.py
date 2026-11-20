@@ -126,7 +126,7 @@ def test_rule_based_insight(result):
 
 # ---------------------------------------------------------------- API
 def upload(files, **data):
-    return client.post("/api/analyze", files=files, data={"use_ai": "false", **data})
+    return client.post("/api/analyze", files=files, data={"smart_summary": "false", **data})
 
 
 def xlsx(path):
@@ -135,17 +135,18 @@ def xlsx(path):
 
 def test_health_index_schema():
     assert client.get("/health").json() == {"status": "ok"}
-    assert "Beauty Stock AI" in client.get("/").text
+    assert "Beauty Stock Forecast" in client.get("/").text
     sc = client.get("/api/schema").json()
     assert len(sc["files"]) == 6 and sc["sample_files"] == ["Data_Order.xlsx", "Data_Planogram_Kapasitas.xlsx"]
 
 
 def test_sample_endpoint_and_report(monkeypatch):
     monkeypatch.delenv("GEMINI_API_KEY", raising=False)
-    r = client.post("/api/analyze/sample", data={"use_ai": "true"})
+    monkeypatch.delenv("INSIGHT_API_KEY", raising=False)
+    r = client.post("/api/analyze/sample", data={"smart_summary": "true"})
     assert r.status_code == 200
     d = r.json()
-    assert d["kpi"]["combos"] == 246 and d["insight"]["source"] == "aturan" and d["insight"]["note"]
+    assert d["kpi"]["combos"] == 246 and d["insight"]["source"] == "aturan"
     assert set(d["detected_files"]) == {"sales", "refunds", "inventory", "planogram", "skus", "stores"}
     rep = client.get(f"/api/report/{d['job_id']}.xlsx")
     assert rep.status_code == 200 and rep.content[:2] == b"PK"
@@ -200,3 +201,26 @@ def test_sample_downloads_and_unknown_files():
     assert client.get("/sample/Data_Planogram_Kapasitas.xlsx").status_code == 200
     assert client.get("/sample/secret.xlsx").status_code == 404
     assert client.get("/api/report/doesnotexist.xlsx").status_code == 404
+
+
+def test_hanging_writer_falls_back(monkeypatch):
+    """A summary call that never returns must not hang the request."""
+    import time
+    from app import insights
+
+    monkeypatch.setenv("GEMINI_API_KEY", "fake")
+    monkeypatch.setenv("AI_TIMEOUT_SECONDS", "1")
+    monkeypatch.setattr(insights, "narrative_insight", lambda o: time.sleep(30))
+    t = time.time()
+    ins = insights.make_insight(run_analysis(subset(*MIN)), smart_summary=True)
+    assert time.time() - t < 10
+    assert ins["source"] == "aturan" and ins["note"]
+
+
+def test_failing_writer_falls_back(monkeypatch):
+    from app import insights
+
+    monkeypatch.setenv("GEMINI_API_KEY", "fake")
+    monkeypatch.setattr(insights, "narrative_insight", lambda o: (_ for _ in ()).throw(RuntimeError("503")))
+    ins = insights.make_insight(run_analysis(subset(*MIN)), smart_summary=True)
+    assert ins["source"] == "aturan" and ins["note"]

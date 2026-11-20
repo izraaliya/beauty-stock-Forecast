@@ -1,5 +1,5 @@
 services:
-  beauty-stock-ai:
+  beauty-stock-forecast:
     build: .
     ports:
       - "8000:8000"

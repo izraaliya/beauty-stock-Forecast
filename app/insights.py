@@ -1,18 +1,33 @@
-"""Narrative insights: Gemini when a key is available, deterministic rules otherwise.
+"""Narrative summary: a richer written summary when a key is configured, deterministic rules otherwise.
 
-Gemini only ever sees aggregated facts computed by the analysis (never raw uploads row by row),
+The writer only ever sees aggregated facts computed by the analysis (never raw rows),
 and is told to use only those numbers.
 """
 from __future__ import annotations
 
 import json
 import os
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeout
 
 import numpy as np
 import pandas as pd
 from pydantic import BaseModel
 
 DEFAULT_MODEL = "gemini-3.5-flash"
+
+
+def _key() -> str | None:
+    return os.getenv("INSIGHT_API_KEY") or os.getenv("GEMINI_API_KEY")
+
+_pool = ThreadPoolExecutor(max_workers=2)
+
+
+def ai_timeout() -> float:
+    """Seconds to wait for the writer before using the standard summary."""
+    try:
+        return max(1.0, float(os.getenv("AI_TIMEOUT_SECONDS", "30")))
+    except ValueError:
+        return 30.0
 
 
 class Priority(BaseModel):
@@ -141,33 +156,32 @@ FAKTA (JSON):
 """
 
 
-def gemini_insight(o: dict) -> dict:
+def narrative_insight(o: dict) -> dict:
     from google import genai
     from google.genai import types
 
-    key = os.getenv("GEMINI_API_KEY")
+    key = _key()
     if not key:
-        raise RuntimeError("GEMINI_API_KEY is not set")
-    client = genai.Client(api_key=key)   # keep a reference so the client is not closed mid-request
+        raise RuntimeError("no key configured")
+    client = genai.Client(api_key=key, http_options=types.HttpOptions(timeout=int(ai_timeout() * 1000)))   # keep a reference so the client is not closed mid-request
     resp = client.models.generate_content(
-        model=os.getenv("GEMINI_MODEL", DEFAULT_MODEL),
+        model=os.getenv("INSIGHT_MODEL") or os.getenv("GEMINI_MODEL", DEFAULT_MODEL),
         contents=PROMPT.format(facts=json.dumps(build_facts(o), ensure_ascii=False, default=str)),
         config=types.GenerateContentConfig(response_mime_type="application/json", response_schema=Insight, temperature=0.3),
     )
     parsed = resp.parsed
     if not isinstance(parsed, Insight):
-        raise RuntimeError("Unexpected Gemini response format")
-    return parsed.model_dump() | {"source": "gemini"}
+        raise RuntimeError("Unexpected response format")
+    return parsed.model_dump() | {"source": "narasi"}
 
 
-def make_insight(o: dict, use_ai: bool = True) -> dict:
-    """Never raises: falls back to rule-based text and records why."""
+def make_insight(o: dict, smart_summary: bool = True) -> dict:
+    """Never raises: falls back to rule-based text."""
     base = rule_based(o)
-    if not use_ai:
+    if not smart_summary or not _key():
         return base
-    if not os.getenv("GEMINI_API_KEY"):
-        return base | {"note": "GEMINI_API_KEY belum diatur, memakai ringkasan berbasis aturan."}
+    note = "Ringkasan lengkap sedang tidak tersedia, memakai ringkasan standar."
     try:
-        return gemini_insight(o)
-    except Exception as exc:  # network, quota, bad output ...
-        return base | {"note": f"AI tidak tersedia ({type(exc).__name__}), memakai ringkasan berbasis aturan."}
+        return _pool.submit(narrative_insight, o).result(timeout=ai_timeout() + 5)
+    except Exception:  # timeout, network, quota, bad output ...
+        return base | {"note": note}
