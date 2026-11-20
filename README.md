@@ -1,6 +1,6 @@
 # 📦 Beauty Stock AI
 
-Upload sales, refund and stock CSVs from a beauty retail chain (skincare & makeup) and get a **stock plan per store per SKU**: what to order, what is about to run out, what is overstocked, how each store behaves by weekday, and whether Sunday's bigger shelf display can be filled from the store's own backroom.
+Upload sales, refund and stock data (Excel or CSV) from a beauty retail chain (skincare & makeup) and get a **stock plan per store per SKU**: what to order, what is about to run out, what is overstocked, how each store behaves by weekday, and whether Sunday's bigger shelf display can be filled from the store's own backroom.
 
 An AI summary (Gemini) turns the numbers into prioritised actions. Without an API key the app falls back to a rule-based summary, so it works either way.
 
@@ -31,18 +31,18 @@ The Gemini model only sees aggregated results, never raw rows, and is told to us
 
 ## Input files
 
-Upload several CSVs at once. The kind of each file is detected from its columns, so file names do not matter.
+Upload **two Excel files** (or any mix of Excel and CSV). The kind of every sheet is detected from its **column names**, so file and sheet names do not matter, and sheets such as `Petunjuk` (guide) are ignored.
 
-| File | Required | Columns |
-|------|----------|---------|
-| Sales | yes | `date, store_id, sku, units_sold` |
-| Stock | yes | `store_id, sku, shelf_stock, backroom_stock` |
-| SKU master | yes | `sku, name, category, price, unit_cost, lead_time_days, pack_size` (optional: `subcategory`, `hero_sunday`) |
-| Refunds | no | `date, store_id, sku, units_refunded` (optional: `reason`, `units_resellable`) |
-| Planogram | no | `store_id, sku, shelf_target_weekday, shelf_target_sunday` |
-| Stores | no | `store_id, store_name` |
+| File | Sheet | Required | Columns |
+|------|-------|----------|---------|
+| `Data_Order.xlsx` | Penjualan | yes | `date, store_id, sku, units_sold` |
+| | Refund | no | `date, store_id, sku, units_refunded` (optional: `reason`, `units_resellable`) |
+| `Data_Planogram_Kapasitas.xlsx` | Planogram | no | `store_id, sku, shelf_target_weekday, shelf_target_sunday` (shelf capacity, weekday vs Sunday) |
+| | Stok | yes | `store_id, sku, shelf_stock, backroom_stock` |
+| | SKU | yes | `sku, name, category, price, unit_cost, lead_time_days, pack_size` (optional: `subcategory`, `hero_sunday`) |
+| | Toko | no | `store_id, store_name` |
 
-Without refunds the app ignores them, without a planogram it estimates display targets from sales. Sample files are in [`sample_data/`](sample_data) and the **Try with sample data** button uses them. The sample data is synthetic.
+Without refunds the app ignores them, without a planogram it estimates display targets from sales. The example workbooks are in [`sample_data/`](sample_data) (synthetic, regenerate with `python scripts/generate_sample_data.py`), and the **Try with sample data** button uses them. `.csv` also works, one file per table; `.xls` (old format) is not supported.
 
 ## Run
 
@@ -81,10 +81,11 @@ Docs at `/docs`.
 
 | Method | Path | Description |
 |--------|------|-------------|
-| `POST` | `/api/analyze` | Multipart: `files` (several CSVs), `review_days`, `overstock_days`, `use_ai` |
+| `POST` | `/api/analyze` | Multipart: `files` (Excel and/or CSV), `review_days`, `overstock_days`, `use_ai` |
 | `POST` | `/api/analyze/sample` | Same, using the bundled sample data |
 | `GET` | `/api/report/{job_id}.xlsx` | Excel export of an analysis (kept 1 hour) |
-| `GET` | `/api/schema` | Expected files and columns |
+| `GET` | `/api/schema` | Expected tables and columns |
+| `GET` | `/sample/{name}` | Download an example workbook |
 
 ## Tests
 
@@ -92,13 +93,13 @@ Docs at `/docs`.
 pytest
 ```
 
-18 tests cover the analysis (invariants, planted weekday patterns recovered, sparse data, validation errors) and the API. Gemini is not called in tests.
+21 tests cover the analysis (invariants, planted weekday patterns recovered, sparse data, validation errors) and the API (Excel and CSV upload, bad files). Gemini is not called in tests.
 
 ## Limitations
 
 - Sales on days a SKU was out of stock are not recorded, so lost demand is not counted. Real data needs a correction for this.
 - Reports and results live in memory and are dropped after an hour or a restart.
-- Up to 5,000 store × SKU combinations and 25 MB per file per analysis.
+- Up to 5,000 store × SKU combinations and 25 MB per file per analysis. Very large workbooks load slowly; CSV is faster.
 - AI text can be wrong; the numbers in the tables and the Excel are the source of truth.
 
 ## Project structure
@@ -110,6 +111,7 @@ app/
   report.py     # Excel builder
   main.py       # FastAPI routes
   static/       # single-page UI
-sample_data/    # synthetic example CSVs
+sample_data/    # two example workbooks (Data_Order, Data_Planogram_Kapasitas)
+scripts/        # generator for the sample data
 tests/
 ```

@@ -100,6 +100,51 @@ def _run(tables: dict, detected: dict, review_days: int, overstock_days: int, us
     return _payload(o, ins, job_id, detected)
 
 
+def _parse_upload(filename: str, data: bytes) -> list[tuple[str, str, pd.DataFrame]]:
+    """Return [(label, kind, DataFrame)] for a CSV or an Excel workbook (one entry per recognised sheet).
+
+    CSV with unknown columns is an error. In a workbook, sheets that are not data (e.g. 'Petunjuk') are skipped.
+    """
+    name = (filename or "file").lower()
+    if name.endswith((".xlsx", ".xlsm")):
+        try:
+            sheets = pd.read_excel(io.BytesIO(data), sheet_name=None)
+        except Exception:
+            raise HTTPException(status_code=422, detail=f"{filename}: tidak bisa dibaca sebagai file Excel (.xlsx).")
+        items, from_excel = [(f"{filename} › {sn}", df) for sn, df in sheets.items()], True
+    elif name.endswith(".xls"):
+        raise HTTPException(status_code=422, detail=f"{filename}: format .xls lama tidak didukung. Simpan ulang sebagai .xlsx atau .csv.")
+    else:
+        try:
+            df = pd.read_csv(io.BytesIO(data), sep=None, engine="python", encoding_errors="replace")
+        except Exception:
+            raise HTTPException(status_code=422, detail=f"{filename}: tidak bisa dibaca sebagai CSV.")
+        items, from_excel = [(filename, df)], False
+    out = []
+    for label, df in items:
+        df.columns = [str(c).strip().lower() for c in df.columns]
+        kind = detect_kind(df)
+        if kind is None:
+            if from_excel:
+                continue
+            raise HTTPException(status_code=422, detail=(
+                f"{filename}: kolom tidak dikenali ({', '.join(df.columns[:8])}). Lihat format kolom yang dibutuhkan di bawah tombol upload."))
+        if df.empty:
+            continue
+        out.append((label, kind, df))
+    return out
+
+
+def _collect(uploads: list[tuple[str, bytes]]) -> tuple[dict, dict]:
+    tables, detected = {}, {}
+    for filename, data in uploads:
+        for label, kind, df in _parse_upload(filename, data):
+            if kind in tables:
+                raise HTTPException(status_code=422, detail=f"Ada dua sumber untuk '{LABELS[kind]}' ({detected[kind]} dan {label}). Sisakan satu saja.")
+            tables[kind], detected[kind] = df, label
+    return tables, detected
+
+
 def _check_opts(review_days: int, overstock_days: int):
     if not 1 <= review_days <= 60 or not 7 <= overstock_days <= 365:
         raise HTTPException(status_code=422, detail="Siklus order harus 1-60 hari dan batas overstock 7-365 hari.")
@@ -112,7 +157,11 @@ def health() -> dict:
 
 @app.get("/api/schema")
 def schema() -> dict:
-    return {"files": [{"kind": k, "label": LABELS[k], "required": k in MANDATORY, "columns": REQUIRED[k]} for k in REQUIRED]}
+    where = {"sales": "Data_Order.xlsx › Penjualan", "refunds": "Data_Order.xlsx › Refund",
+             "planogram": "Data_Planogram_Kapasitas.xlsx › Planogram", "inventory": "Data_Planogram_Kapasitas.xlsx › Stok",
+             "skus": "Data_Planogram_Kapasitas.xlsx › SKU", "stores": "Data_Planogram_Kapasitas.xlsx › Toko"}
+    return {"files": [{"kind": k, "label": LABELS[k], "required": k in MANDATORY, "columns": REQUIRED[k], "sample": where[k]} for k in REQUIRED],
+            "sample_files": SAMPLE_FILES}
 
 
 @app.post("/api/analyze")
@@ -121,34 +170,24 @@ async def analyze(files: list[UploadFile] = File(...), review_days: int = Form(7
     _check_opts(review_days, overstock_days)
     if len(files) > MAX_FILES:
         raise HTTPException(status_code=422, detail=f"Maksimal {MAX_FILES} file.")
-    tables, detected = {}, {}
+    uploads = []
     for f in files:
         data = await f.read()
         if len(data) > MAX_FILE_BYTES:
             raise HTTPException(status_code=413, detail=f"{f.filename}: ukuran lebih dari 25 MB.")
-        try:
-            df = pd.read_csv(io.BytesIO(data), sep=None, engine="python", encoding_errors="replace")
-        except Exception:
-            raise HTTPException(status_code=422, detail=f"{f.filename}: tidak bisa dibaca sebagai CSV.")
-        df.columns = [str(c).strip().lower() for c in df.columns]
-        kind = detect_kind(df)
-        if kind is None:
-            raise HTTPException(status_code=422, detail=(
-                f"{f.filename}: kolom tidak dikenali ({', '.join(df.columns[:8])}). Lihat format kolom yang dibutuhkan di bawah tombol upload."))
-        if kind in tables:
-            raise HTTPException(status_code=422, detail=f"Ada dua file untuk '{LABELS[kind]}' ({detected[kind]} dan {f.filename}). Unggah satu saja.")
-        tables[kind] = df
-        detected[kind] = f.filename
+        uploads.append((f.filename or "file", data))
+    tables, detected = _collect(uploads)
     return JSONResponse(_run(tables, detected, review_days, overstock_days, use_ai))
+
+
+SAMPLE_FILES = ["Data_Order.xlsx", "Data_Planogram_Kapasitas.xlsx"]
 
 
 @app.post("/api/analyze/sample")
 def analyze_sample(review_days: int = Form(7), overstock_days: int = Form(45), use_ai: bool = Form(True)):
     _check_opts(review_days, overstock_days)
-    files = {"sales": "sales_daily.csv", "refunds": "refunds.csv", "inventory": "inventory_snapshot.csv",
-             "planogram": "planogram.csv", "skus": "skus.csv", "stores": "stores.csv"}
-    tables = {k: pd.read_csv(SAMPLE / v) for k, v in files.items()}
-    return JSONResponse(_run(tables, files, review_days, overstock_days, use_ai))
+    tables, detected = _collect([(n, (SAMPLE / n).read_bytes()) for n in SAMPLE_FILES])
+    return JSONResponse(_run(tables, detected, review_days, overstock_days, use_ai))
 
 
 @app.get("/api/report/{job_id}.xlsx")
@@ -160,12 +199,12 @@ def report(job_id: str):
                         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
 
-@app.get("/sample/{name}.csv")
-def sample_csv(name: str):
-    path = SAMPLE / f"{name}.csv"
-    if not name.replace("_", "").isalnum() or not path.exists():
+@app.get("/sample/{name}")
+def sample_file(name: str):
+    if name not in SAMPLE_FILES:
         raise HTTPException(status_code=404, detail="File contoh tidak ada.")
-    return FileResponse(path, filename=f"{name}.csv", media_type="text/csv")
+    return FileResponse(SAMPLE / name, filename=name,
+                        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
 
 @app.get("/")

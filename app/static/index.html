@@ -67,11 +67,11 @@
 
 <main>
   <section class="card">
-    <h2>1. Upload data (CSV)</h2>
+    <h2>1. Upload data (Excel atau CSV)</h2>
     <div id="drop" class="drop" tabindex="0">
-      <b>Tarik file CSV ke sini</b> atau klik untuk memilih.<br>
-      <span>Bisa banyak file sekaligus. Jenis file dikenali otomatis dari kolomnya.</span>
-      <input id="file" type="file" accept=".csv,text/csv" multiple class="hidden">
+      <b>Tarik file Excel (.xlsx) atau CSV ke sini</b> atau klik untuk memilih.<br>
+      <span>Cukup 2 file Excel: <b>Data Order</b> (penjualan, refund) dan <b>Data Planogram &amp; Kapasitas</b> (rak, stok, SKU, toko). Jenis tiap sheet dikenali otomatis dari kolomnya.</span>
+      <input id="file" type="file" accept=".xlsx,.xlsm,.csv,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" multiple class="hidden">
     </div>
     <div id="chips" class="chips"></div>
 
@@ -88,8 +88,9 @@
 
     <details>
       <summary>Format file yang dibutuhkan</summary>
-      <p class="hint">Wajib: penjualan, stok, dan master SKU. Lainnya opsional, tapi makin lengkap makin akurat. Nama file bebas.</p>
-      <div class="tw"><table class="fmt"><thead><tr><th>File</th><th>Wajib?</th><th>Kolom</th><th>Contoh</th></tr></thead><tbody id="fmt"></tbody></table></div>
+      <p class="hint">Wajib: penjualan, stok, dan master SKU. Lainnya opsional, tapi makin lengkap makin akurat. Nama file dan nama sheet bebas, yang dibaca adalah nama kolomnya. Sheet lain (misalnya Petunjuk) diabaikan.</p>
+      <p id="samples" class="hint"></p>
+      <div class="tw"><table class="fmt"><thead><tr><th>Data</th><th>Wajib?</th><th>Kolom</th><th>Ada di contoh</th></tr></thead><tbody id="fmt"></tbody></table></div>
     </details>
   </section>
 
@@ -202,7 +203,9 @@ function render() {
   if (ins.note) ai.append(el("div", {class: "note", text: ins.note}));
   if (ins.source === "gemini") ai.append(el("div", {class: "note", text: "Teks dibuat AI dari angka hasil analisis. Cek kembali sebelum dipakai untuk keputusan besar."}));
 
-  $("warns").replaceChildren(...(d.meta.warnings || []).map(w => el("div", {class: "warn", text: "⚠ " + w})));
+  const names = {sales: "Penjualan", refunds: "Refund", inventory: "Stok", planogram: "Planogram", skus: "SKU", stores: "Toko"};
+  $("warns").replaceChildren(el("div", {class: "note", text: "Data dibaca dari: " + Object.entries(d.detected_files).map(([k, v]) => names[k] + " (" + v + ")").join(", ")}),
+    ...(d.meta.warnings || []).map(w => el("div", {class: "warn", text: "⚠ " + w})));
   const kp = (cls, v, l) => el("div", {class: "kpi " + cls}, el("div", {class: "v", text: v}), el("div", {class: "l", text: l}));
   $("kpis").replaceChildren(
     kp("r", fmt(st["RISIKO HABIS"] || 0), "SKU berisiko habis"), kp("a", fmt(st["ORDER SEKARANG"] || 0), "Order sekarang"),
@@ -298,12 +301,12 @@ function paneAssump(p) {
 }
 
 // ---------------------------------------------------------------- format help
-fetch("/api/schema").then(r => r.json()).then(s => {
-  const sample = {sales: "sales_daily", refunds: "refunds", inventory: "inventory_snapshot", planogram: "planogram", skus: "skus", stores: "stores"};
-  $("fmt").replaceChildren(...s.files.map(f => el("tr", {}, el("td", {text: f.label}), el("td", {text: f.required ? "Wajib" : "Opsional"}),
+fetch("/api/schema").then(r => r.json()).then(sc => {
+  $("samples").replaceChildren("Unduh contoh: ", ...sc.sample_files.flatMap((n, i) => [i ? " · " : "", el("a", {href: "/sample/" + n, text: n})]));
+  $("fmt").replaceChildren(...sc.files.map(f => el("tr", {}, el("td", {text: f.label}), el("td", {text: f.required ? "Wajib" : "Opsional"}),
     el("td", {}, ...f.columns.map(c => el("code", {text: c})), f.kind === "refunds" ? el("span", {class: "hint", text: "  (opsional: reason, units_resellable)"}) : null,
       f.kind === "skus" ? el("span", {class: "hint", text: "  (opsional: subcategory, hero_sunday)"}) : null),
-    el("td", {}, el("a", {href: "/sample/" + sample[f.kind] + ".csv", text: "unduh contoh"})))));
+    el("td", {text: f.sample}))));
 }).catch(() => {});
 </script>
 </body>
